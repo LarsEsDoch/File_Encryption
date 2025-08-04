@@ -1,4 +1,6 @@
 import os
+import sys
+
 from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -6,7 +8,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 def derive_key(password: bytes, salt: bytes) -> bytes:
     kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
+        algorithm=hashes.SHA3_512(),
         length=32,
         salt=salt,
         iterations=100_000,
@@ -14,25 +16,32 @@ def derive_key(password: bytes, salt: bytes) -> bytes:
     return kdf.derive(password)
 
 
-def encrypt_and_save(text: str, password: str, filename: str):
+def encrypt_and_save(password: str, filename: str):
     salt = os.urandom(16)
     iv = os.urandom(16)
     key = derive_key(password.encode(), salt)
 
     padder = padding.PKCS7(128).padder()
-    padded = padder.update(text.encode()) + padder.finalize()
+    with open(filename, "rb") as f:
+        data = f.read()
+
+    padded = padder.update(data) + padder.finalize()
 
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(padded) + encryptor.finalize()
 
-    with open(filename, "wb") as f:
+    os.makedirs("encrypted", exist_ok=True)
+    with open("encrypted/" + filename + ".dat", "wb") as f:
         f.write(salt + iv + ciphertext)
-    print(f"Text encrypted and saved to '{filename}'.")
+    print(f"File encrypted and saved to 'encrypted/{filename}.dat'.\n")
 
 
 def load_and_decrypt(password: str, filename: str):
-    with open(filename, "rb") as f:
+    if not os.path.exists("encrypted/" + filename + ".dat"):
+        print(f"File '{filename + '.dat'}' not found.")
+        return
+    with open("encrypted/" + filename + ".dat", "rb") as f:
         data = f.read()
 
     salt = data[:16]
@@ -42,39 +51,39 @@ def load_and_decrypt(password: str, filename: str):
 
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     decryptor = cipher.decryptor()
-    padded_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    padded_plain_data = decryptor.update(ciphertext) + decryptor.finalize()
 
     unpadder = padding.PKCS7(128).unpadder()
-    plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
+    decrypted_data = unpadder.update(padded_plain_data) + unpadder.finalize()
 
-    print("Decrypted text:")
-    print(plaintext.decode())
+    os.makedirs("decrypted", exist_ok=True)
+    with open("decrypted/" + filename, "wb") as f:
+        f.write(decrypted_data)
+    print(f"File decrypted and saved to 'decrypted/{filename}'.\n")
+
+
+def run():
+    while True:
+        print("Modes:")
+        print("1. Encrypt")
+        print("2. Decrypt")
+        print("3. Exit")
+        mode = input("Enter mode: ")
+        if mode == "1":
+            filename = input("Enter filename: ")
+            password = input("Password: ")
+            encrypt_and_save(password, filename)
+        elif mode == "2":
+            filename = input("Enter filename: ")
+            password = input("Password: ")
+            load_and_decrypt(password, filename)
+        elif mode == "3":
+            sys.exit(0)
+        else:
+            print("Invalid mode. Please try again.")
 
 
 if __name__ == "__main__":
-    import sys
-    import getpass
-
-    if len(sys.argv) < 3:
-        print("Usage:")
-        print("  python aes_encryptor.py encrypt <filename>")
-        print("  python aes_encryptor.py decrypt <filename>")
-        sys.exit(1)
-
-    mode = sys.argv[1]
-    filename = sys.argv[2]
-
-    if mode == "encrypt":
-        text = input("Text to encrypt: ")
-        password = getpass.getpass("Password: ")
-        encrypt_and_save(text, password, filename)
-
-    elif mode == "decrypt":
-        password = getpass.getpass("Password: ")
-        try:
-            load_and_decrypt(password, filename)
-        except Exception as e:
-            print("Decryption failed:", str(e))
-
-    else:
-        print("Unknown mode:", mode)
+    print("\n--- Welcome to the File Encryption Tool! ---\n")
+    run()
+    print("\n--- Thanks for using the File Encryption Tool! ---\n")
