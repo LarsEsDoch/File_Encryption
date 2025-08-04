@@ -185,6 +185,4 @@ cython_debug/
 
 # Project Files
 *.dat
-decrypted/
-encrypted/
-input/
+files/
