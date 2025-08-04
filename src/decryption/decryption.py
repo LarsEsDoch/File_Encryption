@@ -39,7 +39,7 @@ def decrypt_directory(password: str):
     os.makedirs("files/decrypted", exist_ok=True)
     decrypted_files = 0
 
-    def decrypt_in_directory(encrypted_dir: str, decrypted_dir: str):  # Recursively traverse directories
+    def decrypt_in_directory(encrypted_dir: str, decrypted_dir: str):
         nonlocal decrypted_files
 
         for item in os.listdir(encrypted_dir):
@@ -63,7 +63,6 @@ def decrypt_directory(password: str):
                 try:
                     decrypted_data = unpadder.update(padded_plain_data) + unpadder.finalize()
                 except ValueError:
-                    print(f"Wrong password for '{item}'.\n")
                     continue
 
                 with open(decrypted_path, "wb") as f:
@@ -71,9 +70,9 @@ def decrypt_directory(password: str):
 
                 decrypted_files += 1
 
-            elif os.path.isdir(encrypted_path):  # If it's a directory, recurse into it
+            elif os.path.isdir(encrypted_path):
                 os.makedirs(decrypted_path, exist_ok=True)
-                decrypt_in_directory(encrypted_path, decrypted_path)  # Recursive call
+                decrypt_in_directory(encrypted_path, decrypted_path)
 
     decrypt_in_directory("files/encrypted", "files/decrypted")
 

@@ -1,3 +1,5 @@
+import os
+
 from src.interface.interface import decrypt, encrypt
 
 
@@ -18,6 +20,7 @@ def run():
             print("Invalid mode. Please try again.")
 
 if __name__ == "__main__":
+    os.makedirs("files/input", exist_ok=True)
     print("\n--- Welcome to the File Encryption Tool! ---\n")
     run()
     print("\n--- Thanks for using the File Encryption Tool! ---\n")
