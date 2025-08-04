@@ -33,67 +33,49 @@ def decrypt_file(password: str, filename: str):
 
 def decrypt_directory(password: str):
     if not os.path.exists("files/encrypted/"):
-        print(f"'files/encrypted/' not found.\n")
-        return
-    if not any(os.path.isfile(os.path.join("files/encrypted", f)) for f in os.listdir("files/encrypted")):
-        print("No files found in 'files/encrypted/' to decrypt.\n")
+        print("'files/encrypted/' not found.\n")
         return
 
-    os.makedirs("files/encrypted", exist_ok=True)
+    os.makedirs("files/decrypted", exist_ok=True)
     decrypted_files = 0
 
-    for filename in os.listdir("files/encrypted/"):
-        if os.path.isfile("files/encrypted/" + filename):
-            with open("files/encrypted/" + filename, "rb") as f:
-                data = f.read()
+    def decrypt_in_directory(encrypted_dir: str, decrypted_dir: str):  # Recursively traverse directories
+        nonlocal decrypted_files
 
-            salt = data[:16]
-            iv = data[16:32]
-            ciphertext = data[32:]
-            key = derive_key(password.encode(), salt)
+        for item in os.listdir(encrypted_dir):
+            encrypted_path = os.path.join(encrypted_dir, item)
+            decrypted_path = os.path.join(decrypted_dir, os.path.splitext(item)[0])
 
-            cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
-            decryptor = cipher.decryptor()
-            padded_plain_data = decryptor.update(ciphertext) + decryptor.finalize()
+            if os.path.isfile(encrypted_path):
+                with open(encrypted_path, "rb") as f:
+                    data = f.read()
 
-            unpadder = padding.PKCS7(128).unpadder()
-            try:
-                decrypted_data = unpadder.update(padded_plain_data) + unpadder.finalize()
-            except ValueError:
-                print(f"Wrong password '{filename}'.\n")
-                continue
+                salt = data[:16]
+                iv = data[16:32]
+                ciphertext = data[32:]
+                key = derive_key(password.encode(), salt)
 
-            with open(f"files/decrypted/{os.path.splitext(filename)[0]}", "wb") as f:
-                f.write(decrypted_data)
-            decrypted_files += 1
-        elif os.path.isdir(f"files/encrypted/{filename}"):
-            if not any(os.path.isfile(os.path.join("files/encrypted", f)) for f in os.listdir("files/encrypted")):
-                continue
-            os.makedirs(f"files/decrypted/{filename}", exist_ok=True)
-            for filename_sub in os.listdir(f"files/encrypted/{filename}"):
-                if os.path.isfile(f"files/encrypted/{filename}/{filename_sub}"):
-                    with open(f"files/encrypted/{filename}/{filename_sub}", "rb") as f:
-                        data = f.read()
+                cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+                decryptor = cipher.decryptor()
+                padded_plain_data = decryptor.update(ciphertext) + decryptor.finalize()
 
-                    salt = data[:16]
-                    iv = data[16:32]
-                    ciphertext = data[32:]
-                    key = derive_key(password.encode(), salt)
+                unpadder = padding.PKCS7(128).unpadder()
+                try:
+                    decrypted_data = unpadder.update(padded_plain_data) + unpadder.finalize()
+                except ValueError:
+                    print(f"Wrong password for '{item}'.\n")
+                    continue
 
-                    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
-                    decryptor = cipher.decryptor()
-                    padded_plain_data = decryptor.update(ciphertext) + decryptor.finalize()
+                with open(decrypted_path, "wb") as f:
+                    f.write(decrypted_data)
 
-                    unpadder = padding.PKCS7(128).unpadder()
-                    try:
-                        decrypted_data = unpadder.update(padded_plain_data) + unpadder.finalize()
-                    except ValueError:
-                        print(f"Wrong password '{filename}'.\n")
-                        continue
+                decrypted_files += 1
 
-                    with open(f"files/decrypted/{filename}/{os.path.splitext(filename_sub)[0]}", "wb") as f:
-                        f.write(decrypted_data)
-                    decrypted_files += 1
+            elif os.path.isdir(encrypted_path):  # If it's a directory, recurse into it
+                os.makedirs(decrypted_path, exist_ok=True)
+                decrypt_in_directory(encrypted_path, decrypted_path)  # Recursive call
+
+    decrypt_in_directory("files/encrypted", "files/decrypted")
 
     if decrypted_files == 0:
         print("No files decrypted.\n")

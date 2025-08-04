@@ -36,55 +36,44 @@ def encrypt_directory(password: str):
     key = derive_key(password.encode(), salt)
 
     if not os.path.exists("files/input/"):
-        print(f"'files/input/' not found.\n")
-        return
-    if not any(os.path.isfile(os.path.join("files/input", f)) for f in os.listdir("files/input")):
-        print("No files found in 'files/input/' to encrypt.\n")
+        print("'files/input/' not found.\n")
         return
 
     os.makedirs("files/encrypted", exist_ok=True)
     encrypted_files = 0
 
-    for filename in os.listdir("files/input/"):
-        if os.path.isfile(f"files/input/{filename}"):
-            with open(f"files/input/{filename}", "rb") as f:
-                data = f.read()
+    def encrypt_in_directory(input_dir: str, output_dir: str):
+        nonlocal encrypted_files
 
-            padder = padding.PKCS7(128).padder()
+        for item in os.listdir(input_dir):
+            input_path = os.path.join(input_dir, item)
+            output_path = os.path.join(output_dir, item)
 
-            padded = padder.update(data) + padder.finalize()
+            if os.path.isfile(input_path):
+                with open(input_path, "rb") as f:
+                    data = f.read()
 
-            cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
-            encryptor = cipher.encryptor()
-            ciphertext = encryptor.update(padded) + encryptor.finalize()
+                padder = padding.PKCS7(128).padder()
+                padded = padder.update(data) + padder.finalize()
 
-            with open(f"files/encrypted/{filename}.dat", "wb") as f:
-                f.write(salt + iv + ciphertext)
-            encrypted_files += 1
-        elif os.path.isdir(f"files/input/{filename}"):
-            if not any(os.path.isfile(os.path.join("files/input", f)) for f in os.listdir("files/input")):
-                continue
-            os.makedirs(f"files/encrypted/{filename}", exist_ok=True)
-            for filename_sub in os.listdir(f"files/input/{filename}"):
-                if os.path.isfile(f"files/input/{filename}/{filename_sub}"):
-                    with open(f"files/input/{filename}/{filename_sub}", "rb") as f:
-                        data = f.read()
+                cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+                encryptor = cipher.encryptor()
+                ciphertext = encryptor.update(padded) + encryptor.finalize()
 
-                    padder = padding.PKCS7(128).padder()
+                with open(output_path + ".dat", "wb") as f:
+                    f.write(salt + iv + ciphertext)
 
-                    padded = padder.update(data) + padder.finalize()
+                encrypted_files += 1
 
-                    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
-                    encryptor = cipher.encryptor()
-                    ciphertext = encryptor.update(padded) + encryptor.finalize()
+            elif os.path.isdir(input_path):
+                os.makedirs(output_path, exist_ok=True)
+                encrypt_in_directory(input_path, output_path)
 
-                    with open(f"files/encrypted/{filename}/{filename_sub}.dat", "wb") as f:
-                        f.write(salt + iv + ciphertext)
-                    encrypted_files += 1
+    encrypt_in_directory("files/input", "files/encrypted")
 
     if encrypted_files == 0:
-        print("No files decrypted.\n")
+        print("No files encrypted.\n")
     elif encrypted_files == 1:
-        print(f"{encrypted_files} file decrypted and saved to 'files/decrypted/'.\n")
+        print(f"{encrypted_files} file encrypted and saved to 'files/encrypted/'.\n")
     else:
-        print(f"{encrypted_files} files decrypted and saved to 'files/decrypted/'.\n")
+        print(f"{encrypted_files} files encrypted and saved to 'files/encrypted/'.\n")
