@@ -22,7 +22,10 @@ def encrypt_and_save(password: str, filename: str):
     key = derive_key(password.encode(), salt)
 
     padder = padding.PKCS7(128).padder()
-    with open(filename, "rb") as f:
+    if not os.path.exists("input/" + filename):
+        print(f"File '{filename}' not found.")
+        return
+    with open("input/" + filename, "rb") as f:
         data = f.read()
 
     padded = padder.update(data) + padder.finalize()
@@ -39,7 +42,7 @@ def encrypt_and_save(password: str, filename: str):
 
 def load_and_decrypt(password: str, filename: str):
     if not os.path.exists("encrypted/" + filename + ".dat"):
-        print(f"File '{filename + '.dat'}' not found.")
+        print(f"File '{filename}.dat' not found.")
         return
     with open("encrypted/" + filename + ".dat", "rb") as f:
         data = f.read()
