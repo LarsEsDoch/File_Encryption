@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>File Encryption</title>
+    <link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+    <header>
+        <div id="header">
+            <h1>File Encryption Tool</h1>
+        </div>
+    </header>
+
+    <div id="drop-text-encryption">
+        <p>File or directory encryption</p>
+    </div>
+
+    <div id="drop-area-encryption">Drag & Drop files here</div>
+    <input type="file" id="fileElem-e" multiple style="display:none" onchange="uploadFiles(this.files)">
+
+    <div id="drop-text-decryption">
+        <p>File or directory decryption</p>
+    </div>
+
+    <div id="drop-area-decryption">Drag & Drop files here</div>
+    <input type="file" id="fileElem-d" multiple style="display:none" onchange="uploadFiles(this.files)">
+
+    <footer>
+        <div id="footer">
+            <h3>Thanks for using</h3>
+
+        </div>
+    </footer>
+
+    <script src="web/script.js"></script>
+</body>
+</html>
