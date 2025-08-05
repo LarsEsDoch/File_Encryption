@@ -1,5 +1,7 @@
 import os
+import threading
 
+from src.interface.backend.flask_interface import run_flask
 from src.interface.interface import decrypt, encrypt
 
 
@@ -22,5 +24,7 @@ def run():
 if __name__ == "__main__":
     os.makedirs("files/input", exist_ok=True)
     print("\n--- Welcome to the File Encryption Tool! ---\n")
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
     run()
     print("\n--- Thanks for using the File Encryption Tool! ---\n")
