@@ -1,41 +1,70 @@
-header {
-    background-color: #333;
-    color: #fff;
-    padding: 10px 0;
-    text-align: center;
-}
-
 body {
-            margin: 0px;
-            font-family: Arial, sans-serif;
+    font-family: 'Inter', sans-serif;
+}
+.tab-active {
+    background-color: #3b82f6;
+    color: white;
+}
+.tab-inactive {
+    background-color: #374151;
+    color: #d1d5db;
+}
+.glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.file-drop-zone {
+    border: 2px dashed #4b5563;
+    transition: all 0.3s ease;
 }
 
-footer {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    padding: 10px 0;
-
+#fileList {
+    scrollbar-width: thin;
+    scrollbar-color: #4b5563 transparent;
 }
 
-#drop-area-encryption, #drop-area-decryption {
-    width: 98%;
-    height: 200px;
-    border: 2px dashed #ccc;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 20px;
-    margin-left: 1%;
+#fileList::-webkit-scrollbar {
+    width: 6px;
 }
 
-#drop-text-encryption, #drop-text-decryption {
-    padding-left: 20px;
+#fileList::-webkit-scrollbar-track {
+    background: transparent;
+}
 
+#fileList::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+    border-radius: 3px;
+}
 
+.file-drop-zone.dragover {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+}
 
+.mode-btn-active {
+    background-color: #4f46e5;
+    color: white;
+}
+.mode-btn-inactive {
+    background-color: transparent;
+    color: #9ca3af;
+}
+
+.remove-button {
+    color: #9ca3af;
+    font-weight: bold;
+    padding: 0 8px;
+    font-size: 18px;
+    transform: translateY(-1px);
+}
+
+.remove-button:hover {
+    color: inherit;
+}
+
+.file-name {
+    width: 90%;
+    text-align: left;
 }
