@@ -4,6 +4,8 @@ import threading
 from src.interface.backend.flask_interface import run_flask
 from src.interface.interface import decrypt, encrypt
 
+# mode 0 = console, mode 1 = web, mode 2 = application
+mode = 1
 
 def run():
     while True:
@@ -22,9 +24,17 @@ def run():
             print("Invalid mode. Please try again.")
 
 if __name__ == "__main__":
-    os.makedirs("files/input", exist_ok=True)
     print("\n--- Welcome to the File Encryption Tool! ---\n")
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    run()
+
+    if mode == 0:
+        os.makedirs("files/input", exist_ok=True)
+        run()
+    elif mode == 1:
+        flask_thread = threading.Thread(target=run_flask, daemon=True)
+        flask_thread.start()
+        print("Flask server started.")
+        input("Press Enter to stop and exit.")
+    else:
+        print("Coming soon...")
+
     print("\n--- Thanks for using the File Encryption Tool! ---\n")
