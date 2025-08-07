@@ -30,6 +30,7 @@ if __name__ == "__main__":
         os.makedirs("files/input", exist_ok=True)
         run()
     elif mode == 1:
+        os.makedirs("files/web", exist_ok=True)
         flask_thread = threading.Thread(target=run_flask, daemon=True)
         flask_thread.start()
         print("Flask server started.")
