@@ -38,6 +38,18 @@ body {
     border-radius: 3px;
 }
 
+#upload-icon, #file-icon, #folder-icon {
+    fill: none
+}
+
+#eye-icon {
+    fill: #4b5563;
+}
+
+#copy-icon, #eye-off-icon {
+    fill: white;
+}
+
 .file-drop-zone.dragover {
     border-color: #3b82f6;
     background-color: rgba(59, 130, 246, 0.1);

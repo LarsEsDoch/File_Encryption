@@ -104,7 +104,7 @@ document.addEventListener('click', function(e) {
         }
     }
 });
-
+eyeOffIcon.classList.add('hidden');
 toggleVisibilityButton.addEventListener('click', () => {
     const isPassword = secretKeyInput.type === 'password';
     secretKeyInput.type = isPassword ? 'text' : 'password';
