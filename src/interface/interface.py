@@ -8,11 +8,11 @@ def encrypt():
     if mode == 'f':
         filename = input("Enter filename: ")
         password = input("Password: ")
-        encrypt_file(password, filename)
+        encrypt_file(password, filename, 0)
     elif mode == 'd':
         print("Put all files to encrypt in the 'files/input/' directory.")
         password = input("Password: ")
-        encrypt_directory(password)
+        encrypt_directory(password, 0)
     else:
         print("Invalid mode. Please try again.")
         return
@@ -24,12 +24,12 @@ def decrypt():
     if mode == 'f':
         filename = input("Enter filename: ")
         password = input("Password: ")
-        decrypt_file(password, filename)
+        decrypt_file(password, filename, 0)
     elif mode == 'd':
         print("Put all encrypted files in the 'files/encrypted/' directory to encrypt.")
         print("Files with another password will be ignored.")
         password = input("Password: ")
-        decrypt_directory(password)
+        decrypt_directory(password, 0)
     else:
         print("Invalid mode. Please try again.")
         return

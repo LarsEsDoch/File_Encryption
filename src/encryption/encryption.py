@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from src.utils.utils import derive_key
 
 
-def encrypt_file(password: str, filename: str):
+def encrypt_file(password: str, filename: str, mode: int):
     salt = os.urandom(16)
     iv = os.urandom(16)
     key = derive_key(password.encode(), salt)
@@ -30,7 +30,7 @@ def encrypt_file(password: str, filename: str):
         f.write(salt + iv + ciphertext)
     print(f"File encrypted and saved to 'files/encrypted/{filename}.dat'.\n")
 
-def encrypt_directory(password: str):
+def encrypt_directory(password: str, mode: int):
     salt = os.urandom(16)
     iv = os.urandom(16)
     key = derive_key(password.encode(), salt)

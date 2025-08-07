@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from src.utils.utils import derive_key
 
 
-def decrypt_file(password: str, filename: str):
+def decrypt_file(password: str, filename: str, mode: int):
     if not os.path.exists(f"files/encrypted/{filename}.dat"):
         print(f"File '{filename}.dat' not found.")
         return
@@ -31,7 +31,7 @@ def decrypt_file(password: str, filename: str):
     print(f"File decrypted and saved to 'files/decrypted/{filename}'.\n")
 
 
-def decrypt_directory(password: str):
+def decrypt_directory(password: str, mode: int):
     if not os.path.exists("files/encrypted/"):
         print("'files/encrypted/' not found.\n")
         return
