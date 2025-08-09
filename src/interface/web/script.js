@@ -54,6 +54,35 @@ fileDropZone.addEventListener('dragover', (e) => {
     fileDropZone.classList.add('dragover');
 });
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
+
+async function uploadFiles(files) {
+    const formData = new FormData();
+
+    Array.from(files).forEach(file => {
+        const filePath = file.webkitRelativePath || file.name;
+        formData.append('files', file, filePath);
+    });
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        //if (!response.ok) {
+        //    throw new Error(`Upload failed: ${response.statusText}`);
+        //}
+
+        const result = await response.json();
+        alert(result.message); //TODO later html alert
+        return result;
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert(`Error: ${error.message}`);
+        throw error;
+    }
+}
+
 fileDropZone.addEventListener('drop', (e) => {
     
     const items = e.dataTransfer.items;
@@ -145,6 +174,7 @@ function handleFiles(files) {
     fileIcon.classList.remove('hidden');
     folderIcon.classList.add('hidden');
     fileNameDisplay.textContent = `${files.length} file${files.length > 1 ? 's' : ''} selected`;
+    uploadFiles(files);
 }
 
 function updateUploadUI() {
@@ -219,6 +249,7 @@ actionButton.addEventListener('click', () => {
         ? `${selectedFiles.length} files/folder`
         : `"${selectedFiles[0].name}"`;
     outputText.value = `${operation} process started for ${target}... (This is a placeholder)`;
+    //enrcyption/decryption start
 });
 
 updateMainUI();

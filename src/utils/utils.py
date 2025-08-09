@@ -14,8 +14,9 @@ def derive_key(password: bytes, salt: bytes) -> bytes:
     return kdf.derive(password)
 
 def create_upload_directory():
-    upload_dir = os.path.join('uploads', str(int(time.time() * 1000)))
+    upload_dir = os.path.join('files/web/uploads', str(int(time.time() * 1000)))
     os.makedirs(upload_dir, exist_ok=True)
+    print(f"Upload directory created: {upload_dir}")
     return upload_dir
 
 

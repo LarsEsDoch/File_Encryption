@@ -1,7 +1,6 @@
 import os
 from flask import Flask, request, render_template
 
-from src.decryption.decryption import decrypt_file
 from src.utils.utils import create_upload_directory, save_file_with_structure
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,11 +33,6 @@ def upload_file():
                 })
             except Exception as e:
                 return {'error': f'Error saving file {uploaded_file.filename}: {str(e)}'}, 500
-
-    if len(saved_files) == 1:
-        filename = saved_files[0]['original_name']
-        decrypt_file("password_here", filename, 1)
-        return {'message': f"File {filename} decrypted successfully!"}
 
     return {
         'message': f"{len(saved_files)} files uploaded successfully!",
