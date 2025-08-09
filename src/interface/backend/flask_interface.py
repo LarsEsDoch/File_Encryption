@@ -16,7 +16,7 @@ def index():
 def upload_file():
     upload_dir = create_upload_directory()
 
-    uploaded_files = request.files.getlist('file')
+    uploaded_files = request.files.getlist('files')
 
     if not uploaded_files or all(f.filename == '' for f in uploaded_files):
         return {'error': 'No files selected'}, 400

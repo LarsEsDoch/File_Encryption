@@ -69,10 +69,6 @@ async function uploadFiles(files) {
             body: formData
         });
 
-        //if (!response.ok) {
-        //    throw new Error(`Upload failed: ${response.statusText}`);
-        //}
-
         const result = await response.json();
         alert(result.message); //TODO later html alert
         return result;
