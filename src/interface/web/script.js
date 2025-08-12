@@ -79,25 +79,78 @@ async function uploadFiles(files) {
     }
 }
 
-fileDropZone.addEventListener('drop', (e) => {
-    
+async function readFolderContents(entry, basePath = '') {
+    const files = [];
+
+    if (entry.isFile) {
+        return new Promise((resolve) => {
+            entry.file(file => {
+                const relativePath = basePath ? `${basePath}/${entry.name}` : entry.name;
+
+                Object.defineProperty(file, 'webkitRelativePath', {
+                    value: relativePath,
+                    writable: false,
+                    configurable: true
+                });
+
+                resolve([file]);
+            });
+        });
+    } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        return new Promise((resolve) => {
+            reader.readEntries(async (entries) => {
+                const allFiles = [];
+                const currentPath = basePath ? `${basePath}/${entry.name}` : entry.name;
+
+                for (const childEntry of entries) {
+                    const childFiles = await readFolderContents(childEntry, currentPath);
+                    allFiles.push(...childFiles);
+                }
+                resolve(allFiles);
+            });
+        });
+    }
+    return [];
+}
+
+
+
+fileDropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    fileDropZone.classList.remove('dragover');
+
     const items = e.dataTransfer.items;
-    if (items) {
+    if (items && items.length > 0) {
         const item = items[0].webkitGetAsEntry();
 
         if (item) {
             if (item.isFile) {
                 uploadMode = 'file';
+                updateUploadUI();
+                handleFiles(e.dataTransfer.files);
             } else if (item.isDirectory) {
                 uploadMode = 'folder';
+                updateUploadUI();
+
+                try {
+                    const files = await readFolderContents(item);
+
+                    const dataTransfer = new DataTransfer();
+                    files.forEach(file => dataTransfer.items.add(file));
+
+                    handleFiles(dataTransfer.files);
+                } catch (error) {
+                    console.error('Error reading folder contents:', error);
+                    alert('Error reading folder contents');
+                }
             }
-            updateUploadUI();
         }
+    } else {
+        handleFiles(e.dataTransfer.files);
     }
-    e.preventDefault();
-    fileDropZone.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
 });
+
 fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
 document.addEventListener('click', function(e) {
