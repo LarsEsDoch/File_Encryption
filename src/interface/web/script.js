@@ -24,10 +24,12 @@ const folderModeBtn = document.getElementById('folder-mode-btn');
 let isEncryptMode = true;
 let selectedFiles = null;
 let uploadMode = 'file';
+let folderName = "";
 
 encryptTab.addEventListener('click', () => {
     if (!isEncryptMode) { isEncryptMode = true; updateMainUI(); }
 });
+
 decryptTab.addEventListener('click', () => {
     if (isEncryptMode) { isEncryptMode = false; updateMainUI(); }
 });
@@ -36,6 +38,7 @@ fileModeBtn.addEventListener('click', () => {
     uploadMode = 'file';
     updateUploadUI();
 });
+
 folderModeBtn.addEventListener('click', () => {
     uploadMode = 'folder';
     updateUploadUI();
@@ -53,6 +56,7 @@ fileDropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     fileDropZone.classList.add('dragover');
 });
+
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
 
 async function uploadFiles(files) {
@@ -98,6 +102,8 @@ async function readFolderContents(entry, basePath = '') {
         });
     } else if (entry.isDirectory) {
         const reader = entry.createReader();
+        folderName = basePath;
+
         return new Promise((resolve) => {
             reader.readEntries(async (entries) => {
                 const allFiles = [];
@@ -113,8 +119,6 @@ async function readFolderContents(entry, basePath = '') {
     }
     return [];
 }
-
-
 
 fileDropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
@@ -182,7 +186,9 @@ document.addEventListener('click', function(e) {
         }
     }
 });
+
 eyeOffIcon.classList.add('hidden');
+
 toggleVisibilityButton.addEventListener('click', () => {
     const isPassword = secretKeyInput.type === 'password';
     secretKeyInput.type = isPassword ? 'text' : 'password';
@@ -208,17 +214,31 @@ function handleFiles(files) {
         fileList.removeChild(fileList.firstChild);
     }
 
-    Array.from(files).forEach(file => {
+    if (uploadMode === 'file') {
+        Array.from(files).forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
+            fileItem.innerHTML = `
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span class="file-name">${file.name}</span>
+                <button class="remove-button" data-filename="${file.name}">x</button>`;
+            fileList.appendChild(fileItem);
+        });
+    } else {
+        folderName = files[0].webkitRelativePath.split('/')[0];
         const fileItem = document.createElement('div');
         fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
         fileItem.innerHTML = `
                 <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span class="file-name">${file.name}</span>
-                <button class="remove-button" data-filename="${file.name}">x</button>`;
+                <span class="file-name">${folderName}</span>
+                <button class="remove-button" data-filename="${folderName}">x</button>`;
         fileList.appendChild(fileItem);
-    });
+    }
+
 
     fileIcon.classList.remove('hidden');
     folderIcon.classList.add('hidden');
@@ -305,4 +325,5 @@ updateMainUI();
 
 fileModeBtn.classList.add('mode-btn-active');
 folderModeBtn.classList.add('mode-btn-inactive');
+
 updateUploadUI();
