@@ -43,6 +43,10 @@ def save_file_with_structure(file, upload_dir):
 
     return file_path
 
+def delete_file(file_path):
+    os.remove(file_path)
+    print(f"Deleted file: {file_path}")
+
 
 def count_uploads(path):
     if not os.path.exists(path):

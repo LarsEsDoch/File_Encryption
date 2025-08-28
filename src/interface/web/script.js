@@ -77,11 +77,41 @@ async function uploadFiles(files) {
         alert(result.message); //TODO later html alert
         return result;
     } catch (error) {
-        console.error('Upload error:', error);
         alert(`Error: ${error.message}`);
         throw error;
     }
 }
+
+async function removeFileFromBackend(filePath, fileName) {
+    const formData = new FormData();
+    formData.append("filePath", filePath || ".");
+    formData.append("fileName", fileName);
+
+    try {
+        const response = await fetch('/remove-file', {
+            method: 'POST',
+            body: formData
+        });
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Server returned non-JSON response:', text);
+            throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to remove file from backend');
+        }
+        return result;
+    } catch (error) {
+        console.error('Full error details:', error);
+        alert(`Error removing file: ${error.message}`);
+        throw error;
+    }
+}
+
 
 async function readFolderContents(entry, basePath = '') {
     const files = [];
@@ -223,7 +253,7 @@ function handleFiles(files) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span class="file-name">${file.name}</span>
-                <button class="remove-button" data-filename="${file.name}">x</button>`;
+                <button class="remove-button" data-filename="${file.name}" data-filepath="${file.webkitRelativePath}">x</button>`;
             fileList.appendChild(fileItem);
         });
     } else {
@@ -235,7 +265,7 @@ function handleFiles(files) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span class="file-name">${folderName}</span>
-                <button class="remove-button" data-filename="${folderName}">x</button>`;
+                <button class="remove-button" data-filename="${folderName}" data-filepath="${folderName}">x</button>`;
         fileList.appendChild(fileItem);
     }
 
@@ -319,6 +349,43 @@ actionButton.addEventListener('click', () => {
         : `"${selectedFiles[0].name}"`;
     outputText.value = `${operation} process started for ${target}... (This is a placeholder)`;
     //enrcyption/decryption start
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('remove-button')) {
+        const fileName = e.target.getAttribute('data-filename');
+        const filePath = e.target.getAttribute('data-filepath');
+        const fileItem = e.target.closest('div');
+
+        e.stopPropagation();
+
+        removeFileFromBackend(filePath, fileName).then(() => {
+            fileItem.remove();
+
+            if (selectedFiles) {
+                const remainingFiles = Array.from(selectedFiles).filter(file => {
+                    if (uploadMode === 'folder') {
+                        return folderName !== fileName;
+                    } else {
+                        return file.name !== fileName && (file.webkitRelativePath || file.name) !== filePath;
+                    }
+                });
+
+                if (remainingFiles.length > 0) {
+                    const dt = new DataTransfer();
+                    remainingFiles.forEach(file => dt.items.add(file));
+                    selectedFiles = dt.files;
+
+                    fileNameDisplay.textContent = `${remainingFiles.length} file${remainingFiles.length > 1 ? 's' : ''} selected`;
+                } else {
+                    selectedFiles = null;
+                    resetFileInput();
+                }
+            }
+        }).catch(() => {
+            alert('File removal from backend failed, keeping in UI');
+        });
+    }
 });
 
 updateMainUI();
