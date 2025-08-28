@@ -13,7 +13,7 @@ def encrypt_file(password: str, filename: str, mode: int):
 
     padder = padding.PKCS7(128).padder()
 
-    if not os.path.exists(f"files/input/{filename}"):
+    if not os.path.exists(f"files/input/{filename}"): 
         print(f"File '{filename}' not found.\n")
         return
     with open(f"files/input/{filename}", "rb") as f:

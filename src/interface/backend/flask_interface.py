@@ -5,7 +5,7 @@ from src.utils.utils import create_upload_directory, save_file_with_structure, d
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(BASE_DIR, 'web')
-lastDir = None
+lastDir = ""
 
 app = Flask(__name__, template_folder=WEB_DIR, static_folder=WEB_DIR)
 
@@ -45,14 +45,14 @@ def upload_file():
 
 @app.route('/remove-file', methods=['POST'])
 def remove_file():
-    filePath = request.form.get('filePath')
-    fileName = request.form.get('fileName')
-    file = filePath + "/" + fileName
+    filepath = request.form.get('filePath')
+    filename = request.form.get('fileName')
+    file = filepath + "/" + filename
     print(file)
     try:
         delete_file(lastDir + file)
     except Exception as e:
-        return {'error': f'Error deleting file {fileName}: {str(e)}'}, 500
+        return {'error': f'Error deleting file {filename}: {str(e)}'}, 500
 
     return {'message': 'File deleted successfully!'}
 
