@@ -187,36 +187,6 @@ fileDropZone.addEventListener('drop', async (e) => {
 
 fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('remove-button')) {
-        const fileName = e.target.getAttribute('data-filename');
-        const fileItem = e.target.closest('div');
-
-        e.stopPropagation();
-        fileItem.remove();
-
-        if (selectedFiles) {
-            const remainingFiles = Array.from(selectedFiles).filter(file => file.name !== fileName);
-            selectedFiles = remainingFiles.length > 0 ?
-                new DataTransfer().files : null;
-
-            if (selectedFiles) {
-                remainingFiles.forEach(file => {
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    selectedFiles = dt.files;
-                });
-            }
-
-            if (!selectedFiles) {
-                resetFileInput();
-            } else {
-                fileNameDisplay.textContent = `${remainingFiles.length} file${remainingFiles.length > 1 ? 's' : ''} selected`;
-            }
-        }
-    }
-});
-
 eyeOffIcon.classList.add('hidden');
 
 toggleVisibilityButton.addEventListener('click', () => {
@@ -358,6 +328,11 @@ document.addEventListener('click', function(e) {
         const fileItem = e.target.closest('div');
 
         e.stopPropagation();
+
+        if (uploadMode === 'folder') {
+            resetFileInput();
+            return;
+        }
 
         removeFileFromBackend(filePath, fileName).then(() => {
             fileItem.remove();
