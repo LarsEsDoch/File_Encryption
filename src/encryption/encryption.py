@@ -13,7 +13,7 @@ def encrypt_file(password: str, filename: str, mode: int):
 
     padder = padding.PKCS7(128).padder()
 
-    if not os.path.exists(f"files/input/{filename}"): 
+    if not os.path.exists(f"files/input/{filename}"):
         print(f"File '{filename}' not found.\n")
         return
     with open(f"files/input/{filename}", "rb") as f:
@@ -30,16 +30,21 @@ def encrypt_file(password: str, filename: str, mode: int):
         f.write(salt + iv + ciphertext)
     print(f"File encrypted and saved to 'files/encrypted/{filename}.dat'.\n")
 
-def encrypt_directory(password: str, mode: int):
+def encrypt_directory(password: str, mode: int, lastDir: str = None):
     salt = os.urandom(16)
     iv = os.urandom(16)
     key = derive_key(password.encode(), salt)
 
-    if not os.path.exists("files/input/"):
-        print("'files/input/' not found.\n")
-        return
-
-    os.makedirs("files/encrypted", exist_ok=True)
+    if mode == 0:
+        if not os.path.exists("files/input/"):
+            print("'files/input/' not found.\n")
+            return
+        os.makedirs("files/encrypted", exist_ok=True)
+    elif mode == 1:
+        if not os.path.exists("files/web/uploads/" + lastDir):
+            print(f"'files/web/uploads/{lastDir}' not found.\n")
+            return
+        os.makedirs("files/web/encrypted/" + lastDir, exist_ok=True)
     encrypted_files = 0
 
     def encrypt_in_directory(input_dir: str, output_dir: str):
@@ -69,7 +74,10 @@ def encrypt_directory(password: str, mode: int):
                 os.makedirs(output_path, exist_ok=True)
                 encrypt_in_directory(input_path, output_path)
 
-    encrypt_in_directory("files/input", "files/encrypted")
+    if mode == 0:
+        encrypt_in_directory("files/input", "files/encrypted")
+    elif mode == 1:
+        encrypt_in_directory("files/web/uploads/" + lastDir, "files/web/encrypted/" + lastDir)
 
     if encrypted_files == 0:
         print("No files encrypted.\n")

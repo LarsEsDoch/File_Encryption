@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, render_template
 
+from src.encryption.encryption import encrypt_directory
 from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,6 +56,12 @@ def remove_file():
         return {'error': f'Error deleting file {filename}: {str(e)}'}, 500
 
     return {'message': 'File deleted successfully!'}
+
+@app.route('/encrypt-files', methods=['POST'])
+def encrypt_files():
+    password = request.form.get('password')
+    mode = int(request.form.get('mode'))
+    encrypt_directory(password, mode, lastDir)
 
 
 def run_flask():
