@@ -91,15 +91,27 @@
             </button>
 
             <div>
-                <label for="output-text" class="block text-sm font-medium text-gray-300 mb-2">Result</label>
+                <label for="output-text" class="block text-sm font-medium text-gray-300 mb-2">Output</label>
                 <div class="relative">
-                    <textarea id="output-text" rows="5" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 pr-12 text-gray-400" readonly placeholder="The result will appear here..."></textarea>
-                    <button id="copy-button" class="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors" title="Copy to clipboard">
-                        <svg xmlns="http://www.w3.org/2000/svg" id="copy-icon" class="h-5 w-5" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
-                    </button>
+                    <div class="bg-gray-800 border border-gray-700 rounded-lg p-3 text-gray-200" id="output-text">
+                        <div class="flex justify-between items-center mb-3">
+                            <button id="download-all-btn"
+                               class="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-200 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+                                </svg>
+                                Download all
+                            </button>
+                        </div>
+
+                        <ul id="files-list" class="divide-y divide-gray-700">
+                            <p class="text-center text-gray-500 italic py-6">Nothing here</p>
+                        </ul>
+                    </div>
                 </div>
-                <p id="copy-feedback" class="text-green-400 text-xs mt-2 opacity-0 transition-opacity duration-300">Copied to clipboard!</p>
             </div>
+
         </div>
     </div>
 </div>

@@ -6,7 +6,7 @@ const outputText = document.getElementById('output-text');
 const toggleVisibilityButton = document.getElementById('toggle-key-visibility');
 const eyeIcon = document.getElementById('eye-icon');
 const eyeOffIcon = document.getElementById('eye-off-icon');
-const copyButton = document.getElementById('copy-button');
+const downloadAllButton = document.getElementById('download-all-btn');
 const copyFeedback = document.getElementById('copy-feedback');
 
 const fileDropZone = document.getElementById('file-drop-zone');
@@ -59,6 +59,46 @@ fileDropZone.addEventListener('dragover', (e) => {
 
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
 
+async function encryption() {
+    let formData = new FormData();
+    formData.append('password', secretKeyInput.value);
+
+    try {
+        const response = await fetch('/encrypt-files', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        alert(result.message); //TODO later html alert
+        await loadFiles();
+        return result;
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+        throw error;
+    }
+}
+
+async function decryption() {
+    let formData = new FormData();
+    formData.append('password', secretKeyInput.value);
+
+    try {
+        const response = await fetch('/decrypt-files', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        alert(result.message); //TODO later html alert
+        await loadFiles()
+        return result;
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+        throw error;
+    }
+}
+
 async function uploadFiles(files) {
     const formData = new FormData();
 
@@ -80,6 +120,42 @@ async function uploadFiles(files) {
         alert(`Error: ${error.message}`);
         throw error;
     }
+}
+
+async function loadFiles() {
+    const response = await fetch("/files");
+    const data = await response.json();
+    const list = document.getElementById("files-list");
+
+    list.innerHTML = "";
+
+    if (data.files.length === 0) {
+        list.innerHTML = `<p class="text-center text-gray-500 italic py-6">Nothing here</p>`;
+        return;
+    }
+
+    data.files.forEach(file => {
+        const li = document.createElement("li");
+        li.className = "flex items-center justify-between py-2";
+        li.innerHTML = `
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v-8a2 2 0 012-2h4l2-2h6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" />
+                </svg>
+                <span>${file}</span>
+            </div>
+            <a href="/files/${file}" class="text-gray-400 hover:text-blue-400 transition" title="Download">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                          d="M3 14a1 1 0 011-1h3v-4h4v4h3a1 1 0 011 1v2a1
+                             1 0 01-1 1H4a1 1 0 01-1-1v-2zM7 10l3 3 3-3H11V4H9v6H7z"
+                          clip-rule="evenodd"/>
+                </svg>
+            </a>
+        `;
+        list.appendChild(li);
+    });
 }
 
 async function removeFileFromBackend(filePath, fileName) {
@@ -196,10 +272,8 @@ toggleVisibilityButton.addEventListener('click', () => {
     eyeOffIcon.classList.toggle('hidden', !isPassword);
 });
 
-copyButton.addEventListener('click', () => {
-    if (outputText.value) {
-        navigator.clipboard.writeText(outputText.value).then(showCopyFeedback);
-    }
+downloadAllButton.addEventListener('click', () => {
+    //download all files
 });
 
 function handleFiles(files) {
@@ -303,7 +377,6 @@ function showCopyFeedback() {
 
 actionButton.addEventListener('click', () => {
     const key = secretKeyInput.value;
-
     if (!selectedFiles) {
         outputText.value = "Please select a file or folder first.";
         return;
@@ -318,7 +391,12 @@ actionButton.addEventListener('click', () => {
         ? `${selectedFiles.length} files/folder`
         : `"${selectedFiles[0].name}"`;
     outputText.value = `${operation} process started for ${target}... (This is a placeholder)`;
-    //enrcyption/decryption start
+
+    if (isEncryptMode) {
+        encryption();
+    } else {
+        decryption();
+    }
 });
 
 document.addEventListener('click', function(e) {
