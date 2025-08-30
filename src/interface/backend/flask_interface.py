@@ -1,12 +1,17 @@
+import io
 import os
-from flask import Flask, request, render_template
+import zipfile
 
+from flask import Flask, request, render_template, send_from_directory, send_file, jsonify
+
+from src.decryption.decryption import decrypt_directory
 from src.encryption.encryption import encrypt_directory
 from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(BASE_DIR, 'web')
 lastDir = ""
+lastDirId = ""
 
 app = Flask(__name__, template_folder=WEB_DIR, static_folder=WEB_DIR)
 
@@ -14,11 +19,14 @@ app = Flask(__name__, template_folder=WEB_DIR, static_folder=WEB_DIR)
 def index():
     return render_template('index.html')
 
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     global lastDir
+    global lastDirId
     upload_dir = create_upload_directory()
     lastDir = upload_dir
+    lastDirId = upload_dir.split("/")[-1]
 
     uploaded_files = request.files.getlist('files')
 
@@ -44,12 +52,13 @@ def upload_file():
         'upload_directory': upload_dir
     }
 
+
+
 @app.route('/remove-file', methods=['POST'])
 def remove_file():
     filepath = request.form.get('filePath')
     filename = request.form.get('fileName')
     file = filepath + "/" + filename
-    print(file)
     try:
         delete_file(lastDir + file)
     except Exception as e:
@@ -57,11 +66,68 @@ def remove_file():
 
     return {'message': 'File deleted successfully!'}
 
+
 @app.route('/encrypt-files', methods=['POST'])
 def encrypt_files():
     password = request.form.get('password')
-    mode = int(request.form.get('mode'))
-    encrypt_directory(password, mode, lastDir)
+    try:
+        encrypt_directory(password, 1, lastDirId)
+    except Exception as e:
+        return {'error': f'Error encrypting files: {str(e)}'}, 500
+
+    return {'message': 'File encryption successfully!'}
+
+
+@app.route('/decrypt-files', methods=['POST'])
+def decrypt_files():
+    password = request.form.get('password')
+    try:
+        decrypt_directory(password, 1, lastDirId)
+    except Exception as e:
+        return {'error': f'Error decrypting files: {str(e)}'}, 500
+
+    return {'message': 'File decryption successfully!'}
+
+
+@app.route("/download_folder")
+def download_folder():
+    folder = "data"
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zipf:
+        for root, dirs, files in os.walk(folder):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, folder)
+                zipf.write(file_path, arcname)
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        as_attachment=True,
+        download_name="mein_ordner.zip",
+        mimetype="application/zip"
+    )
+
+
+@app.route("/files")
+def files():
+    output_dir = "files/web/output/" + lastDirId
+    if not lastDir or not os.path.exists(output_dir):
+        return jsonify({"files": []})
+
+    file_list = []
+    for root, dirs, files in os.walk(output_dir):
+        for f in files:
+            rel_path = os.path.relpath(os.path.join(root, f), output_dir)
+            file_list.append(rel_path)
+
+    return jsonify({"files": file_list})
+
+
+@app.route("/files/<filename>")
+def download_file(filename):
+    return send_from_directory(lastDir, filename, as_attachment=True)
 
 
 def run_flask():

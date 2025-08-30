@@ -16,7 +16,7 @@ def derive_key(password: bytes, salt: bytes) -> bytes:
 
 
 def create_upload_directory():
-    upload_dir = os.path.join('files/web/uploads', str(int(time.time() * 1000)))
+    upload_dir = os.path.join('files/web/uploads/' + str(int(time.time() * 1000)))
     delete_old_upload_directory()
     os.makedirs(upload_dir, exist_ok=True)
     print(f"Upload directory created: {upload_dir}")
@@ -51,7 +51,6 @@ def delete_file(file_path):
 def count_uploads(path):
     if not os.path.exists(path):
         return 0
-    print(path)
     count = 0
     for item in os.listdir(path):
         item_path = os.path.join(path, item)
