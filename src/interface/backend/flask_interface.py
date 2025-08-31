@@ -58,7 +58,23 @@ def upload_file():
 def remove_file():
     filepath = request.form.get('filePath')
     filename = request.form.get('fileName')
+
+    if not filepath or not filename:
+        return {'error': 'Missing file path or name'}, 400
+
+    if '..' in filepath or '..' in filename:
+        return {'error': 'Invalid file path'}, 400
+
     file = filepath + "/" + filename
+   #file = os.path.join(filepath, filename)
+   #lastDir = session.get('lastDir', '')
+
+   #if not lastDir:
+   #    return {'error': 'No upload directory found'}, 400
+
+   #try:
+   #    delete_file(os.path.join(lastDir, file))
+
     try:
         delete_file(lastDir + file)
     except Exception as e:
