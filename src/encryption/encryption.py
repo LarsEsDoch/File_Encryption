@@ -45,6 +45,7 @@ def encrypt_directory(password: str, mode: int, lastDir: str = None):
             print(f"'files/web/uploads/{lastDir}' not found.\n")
             return
         os.makedirs("files/web/output/" + lastDir, exist_ok=True)
+
     encrypted_files = 0
 
     def encrypt_in_directory(input_dir: str, output_dir: str):
