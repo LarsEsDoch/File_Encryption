@@ -1,6 +1,5 @@
 import os
 import shutil
-import time
 
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
@@ -15,8 +14,8 @@ def derive_key(password: bytes, salt: bytes) -> bytes:
     return kdf.derive(password)
 
 
-def create_upload_directory():
-    upload_dir = os.path.join('files/web/uploads/' + str(int(time.time() * 1000)))
+def create_upload_directory(sessionID: str):
+    upload_dir = os.path.join('files/web/uploads/' + sessionID)
     delete_old_upload_directory()
     os.makedirs(upload_dir, exist_ok=True)
     print(f"Upload directory created: {upload_dir}")

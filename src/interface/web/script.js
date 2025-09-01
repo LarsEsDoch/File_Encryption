@@ -21,6 +21,8 @@ const folderIcon = document.getElementById('folder-icon');
 const fileModeBtn = document.getElementById('file-mode-btn');
 const folderModeBtn = document.getElementById('folder-mode-btn');
 
+const sessionID = Date.now().toString();
+
 let isEncryptMode = true;
 let selectedFiles = null;
 let uploadMode = 'file';
@@ -63,6 +65,7 @@ async function performCryptoOperation(isEncrypt) {
     const endpoint = isEncrypt ? '/encrypt-files' : '/decrypt-files';
     const formData = new FormData();
     formData.append('password', secretKeyInput.value);
+    formData.append("sessionID", sessionID);
 
     try {
         const response = await fetch(endpoint, {
@@ -83,6 +86,7 @@ async function performCryptoOperation(isEncrypt) {
 
 async function uploadFiles(files) {
     const formData = new FormData();
+    formData.append("sessionID", sessionID);
 
     Array.from(files).forEach(file => {
         const filePath = file.webkitRelativePath || file.name;
@@ -144,6 +148,7 @@ async function removeFileFromBackend(filePath, fileName) {
     const formData = new FormData();
     formData.append("filePath", filePath || ".");
     formData.append("fileName", fileName);
+    formData.append("sessionID", sessionID);
 
     try {
         const response = await fetch('/remove-file', {
