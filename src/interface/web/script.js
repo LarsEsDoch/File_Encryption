@@ -109,7 +109,13 @@ async function uploadFiles(files) {
 }
 
 async function loadFiles() {
-    const response = await fetch("/files");
+    const formData = new FormData();
+    formData.append("sessionID", sessionID);
+
+    const response = await fetch('/files', {
+        method: 'POST',
+        body: formData
+    });
     const data = await response.json();
     const list = document.getElementById("files-list");
 
@@ -259,8 +265,61 @@ toggleVisibilityButton.addEventListener('click', () => {
     eyeOffIcon.classList.toggle('hidden', !isPassword);
 });
 
-downloadAllButton.addEventListener('click', () => {
-    //download all files
+downloadAllButton.addEventListener('click', async () => {
+    const formData = new FormData();
+    formData.append("sessionID", sessionID);
+    formData.append("mode", uploadMode);
+
+    try {
+        const response = await fetch('/download_folder', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            let errorMsg = `Download failed with status: ${response.status}`;
+            try {
+                const err = await response.json();
+                errorMsg = err.message || errorMsg;
+            } catch (e) {
+            }
+            throw new Error(errorMsg);
+        }
+
+        const disposition = response.headers.get('content-disposition');
+        let downloadFilename;
+        if (uploadMode === 'folder' && folderName) {
+            downloadFilename = `${folderName}.zip`;
+        } else {
+            downloadFilename = `${sessionID}.zip`;
+        }
+
+        if (disposition && disposition.includes('attachment')) {
+            const filenameMatch = disposition.match(/filename="(.+?)"/);
+            if (filenameMatch && filenameMatch.length > 1) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = downloadFilename;
+
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+    } catch (error) {
+        console.error('Full error details:', error);
+        alert(`Error downloading folder: ${error.message}`);
+    }
+
 });
 
 function handleFiles(files) {
