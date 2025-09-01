@@ -488,3 +488,27 @@ fileModeBtn.classList.add('mode-btn-active');
 folderModeBtn.classList.add('mode-btn-inactive');
 
 updateUploadUI();
+
+window.addEventListener('beforeunload', async function (e) {
+    const formData = new FormData();
+    formData.append("sessionID", sessionID);
+
+    try {
+        const response = await fetch('/remove-session', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to close session');
+        }
+        return result;
+    } catch (error) {
+        console.error('Full error details:', error);
+        alert(`Error removing files: ${error.message}`);
+        throw error;
+    }
+
+    e.preventDefault();
+});
