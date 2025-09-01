@@ -59,12 +59,13 @@ fileDropZone.addEventListener('dragover', (e) => {
 
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
 
-async function encryption() {
-    let formData = new FormData();
+async function performCryptoOperation(isEncrypt) {
+    const endpoint = isEncrypt ? '/encrypt-files' : '/decrypt-files';
+    const formData = new FormData();
     formData.append('password', secretKeyInput.value);
 
     try {
-        const response = await fetch('/encrypt-files', {
+        const response = await fetch(endpoint, {
             method: 'POST',
             body: formData
         });
@@ -79,25 +80,6 @@ async function encryption() {
     }
 }
 
-async function decryption() {
-    let formData = new FormData();
-    formData.append('password', secretKeyInput.value);
-
-    try {
-        const response = await fetch('/decrypt-files', {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        alert(result.message); //TODO later html alert
-        await loadFiles()
-        return result;
-    } catch (error) {
-        alert(`Error: ${error.message}`);
-        throw error;
-    }
-}
 
 async function uploadFiles(files) {
     const formData = new FormData();
@@ -378,11 +360,11 @@ function showCopyFeedback() {
 actionButton.addEventListener('click', () => {
     const key = secretKeyInput.value;
     if (!selectedFiles) {
-        outputText.value = "Please select a file or folder first.";
+        console.error("No files selected");
         return;
     }
     if (!key) {
-        outputText.value = "Please provide a secret key.";
+        console.error("Secret key is empty");
         return;
     }
 
@@ -390,13 +372,8 @@ actionButton.addEventListener('click', () => {
     const target = selectedFiles.length > 1 || (selectedFiles[0] && selectedFiles[0].webkitRelativePath)
         ? `${selectedFiles.length} files/folder`
         : `"${selectedFiles[0].name}"`;
-    outputText.value = `${operation} process started for ${target}... (This is a placeholder)`;
 
-    if (isEncryptMode) {
-        encryption();
-    } else {
-        decryption();
-    }
+    performCryptoOperation(isEncryptMode)
 });
 
 document.addEventListener('click', function(e) {
