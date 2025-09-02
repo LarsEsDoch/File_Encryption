@@ -83,12 +83,13 @@ def decrypt_directory(password: str, mode: int, lastDir: str = None):
 
     if mode == 0:
         decrypt_in_directory("files/encrypted", "files/decrypted")
+        if decrypted_files == 0:
+            print("No files decrypted.\n")
+        elif decrypted_files == 1:
+            print(f"{decrypted_files} file decrypted and saved to 'files/decrypted/'.\n")
+        else:
+            print(f"{decrypted_files} files decrypted and saved to 'files/decrypted/'.\n")
     elif mode == 1:
         decrypt_in_directory("files/web/uploads/" + lastDir, "files/web/output/" + lastDir)
-
-    if decrypted_files == 0:
-        print("No files decrypted.\n")
-    elif decrypted_files == 1:
-        print(f"{decrypted_files} file decrypted and saved to 'files/decrypted/'.\n")
-    else:
-        print(f"{decrypted_files} files decrypted and saved to 'files/decrypted/'.\n")
+        return decrypted_files
+    return None

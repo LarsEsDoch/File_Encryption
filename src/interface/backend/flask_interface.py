@@ -1,5 +1,6 @@
 import io
 import os
+import shutil
 import zipfile
 
 from flask import Flask, request, render_template, send_from_directory, send_file, jsonify
@@ -8,8 +9,8 @@ from src.decryption.decryption import decrypt_directory
 from src.encryption.encryption import encrypt_directory
 from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WEB_DIR = os.path.join(BASE_DIR, 'web')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+WEB_DIR = os.path.join(BASE_DIR, 'src', 'interface', 'web')
 
 app = Flask(__name__, template_folder=WEB_DIR, static_folder=WEB_DIR)
 
@@ -103,7 +104,7 @@ def decrypt_files():
     return {'message': 'File decryption successfully!'}
 
 
-@app.route("/download_folder", methods=['POST'])
+@app.route("/download-folder", methods=['POST'])
 def download_folder():
     session_id = request.form.get('sessionID')
     folder = os.path.join('files/web/output/' + session_id)
@@ -125,10 +126,34 @@ def download_folder():
     )
 
 
-@app.route("/files/<filename>")
-def download_file(filename):
+@app.route("/download-file", methods=['POST'])
+def download_file():
     session_id = request.form.get('sessionID')
-    return send_from_directory(os.path.join('files/web/uploads/' + session_id), filename, as_attachment=True)
+    file_path = request.form.get('filePath')
+
+    if not session_id or not file_path:
+        return {'error': 'Missing session ID or file path'}, 400
+
+    output_dir = os.path.join(BASE_DIR, 'files', 'web', 'output', session_id)
+    full_file_path = os.path.join(output_dir, file_path)
+
+    if not full_file_path.startswith(output_dir):
+        return {'error': 'Invalid file path'}, 400
+
+    try:
+        if not os.path.exists(full_file_path):
+            print("eee" + full_file_path)
+            return {'error': f'File {file_path} not found'}, 404
+
+        filename = os.path.basename(file_path)
+        return send_file(
+            full_file_path,
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        print(f"Download error: {str(e)}")
+        return {'error': f'Error downloading file: {str(e)}'}, 500
 
 
 @app.route("/files", methods=['POST'])
@@ -146,6 +171,18 @@ def files():
             file_list.append(rel_path)
 
     return jsonify({"files": file_list})
+
+
+@app.route("/remove-session", methods=['POST'])
+def remove_session():
+    session_id = request.form.get('sessionID')
+    upload_dir = os.path.join('files/web/uploads/' + session_id)
+    output_dir = os.path.join('files/web/output/' + session_id)
+    if os.path.exists(upload_dir):
+        shutil.rmtree(upload_dir)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    return jsonify({"message": "Session removed successfully!"})
 
 
 def run_flask():

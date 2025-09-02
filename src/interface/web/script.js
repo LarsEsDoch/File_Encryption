@@ -7,7 +7,6 @@ const toggleVisibilityButton = document.getElementById('toggle-key-visibility');
 const eyeIcon = document.getElementById('eye-icon');
 const eyeOffIcon = document.getElementById('eye-off-icon');
 const downloadAllButton = document.getElementById('download-all-btn');
-const copyFeedback = document.getElementById('copy-feedback');
 
 const fileDropZone = document.getElementById('file-drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -125,7 +124,7 @@ async function loadFiles() {
         list.innerHTML = `<p class="text-center text-gray-500 italic py-6">Nothing here</p>`;
         return;
     }
-
+    
     data.files.forEach(file => {
         const li = document.createElement("li");
         li.className = "flex items-center justify-between py-2";
@@ -137,14 +136,14 @@ async function loadFiles() {
                 </svg>
                 <span>${file}</span>
             </div>
-            <a href="/files/${file}" class="text-gray-400 hover:text-blue-400 transition" title="Download">
+            <button class="download-button" data-filepath="${file}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
                           d="M3 14a1 1 0 011-1h3v-4h4v4h3a1 1 0 011 1v2a1
                              1 0 01-1 1H4a1 1 0 01-1-1v-2zM7 10l3 3 3-3H11V4H9v6H7z"
                           clip-rule="evenodd"/>
                 </svg>
-            </a>
+            </button>
         `;
         list.appendChild(li);
     });
@@ -177,6 +176,63 @@ async function removeFileFromBackend(filePath, fileName) {
     } catch (error) {
         console.error('Full error details:', error);
         alert(`Error removing file: ${error.message}`);
+        throw error;
+    }
+}
+
+
+async function downloadFileFromBackend(filePath) {
+    const formData = new FormData();
+    formData.append("filePath", filePath);
+    formData.append("sessionID", sessionID);
+
+    try {
+        const response = await fetch('/download-file', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            let errorMsg = `Download failed with status: ${response.status}`;
+            try {
+                const err = await response.json();
+                errorMsg = err.message || errorMsg;
+            } catch (e) {
+            }
+            throw new Error(errorMsg);
+        }
+
+        const disposition = response.headers.get('content-disposition');
+        let downloadFilename;
+        if (uploadMode === 'folder' && folderName) {
+            downloadFilename = `${folderName}`;
+        } else {
+            downloadFilename = `${sessionID}`;
+        }
+
+        if (disposition && disposition.includes('attachment')) {
+            const filenameMatch = disposition.match(/filename="(.+?)"/);
+            if (filenameMatch && filenameMatch.length > 1) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = downloadFilename;
+
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Full error details:', error);
+        alert(`Error downloading file: ${error.message}`);
         throw error;
     }
 }
@@ -271,7 +327,7 @@ downloadAllButton.addEventListener('click', async () => {
     formData.append("mode", uploadMode);
 
     try {
-        const response = await fetch('/download_folder', {
+        const response = await fetch('/download-folder', {
             method: 'POST',
             body: formData
         });
@@ -416,11 +472,6 @@ function resetFileInput() {
     fileDisplay.classList.remove('flex');
 }
 
-function showCopyFeedback() {
-    copyFeedback.classList.remove('opacity-0');
-    setTimeout(() => copyFeedback.classList.add('opacity-0'), 2000);
-}
-
 actionButton.addEventListener('click', () => {
     const key = secretKeyInput.value;
     if (!selectedFiles) {
@@ -431,11 +482,6 @@ actionButton.addEventListener('click', () => {
         console.error("Secret key is empty");
         return;
     }
-
-    const operation = isEncryptMode ? "Encryption" : "Decryption";
-    const target = selectedFiles.length > 1 || (selectedFiles[0] && selectedFiles[0].webkitRelativePath)
-        ? `${selectedFiles.length} files/folder`
-        : `"${selectedFiles[0].name}"`;
 
     performCryptoOperation(isEncryptMode)
 });
@@ -480,6 +526,19 @@ document.addEventListener('click', function(e) {
             alert('File removal from backend failed, keeping in UI');
         });
     }
+    console.log(e.target);
+    const downloadButton = e.target.closest('.download-button');
+    if (downloadButton) {
+        console.log(e.target);
+        const filePath = downloadButton.getAttribute('data-filepath');
+
+        e.stopPropagation();
+
+        downloadFileFromBackend(filePath).catch(() => {
+            alert('File could not be downloaded, please try again');
+        });
+    }
+
 });
 
 updateMainUI();
@@ -493,22 +552,10 @@ window.addEventListener('beforeunload', async function (e) {
     const formData = new FormData();
     formData.append("sessionID", sessionID);
 
-    try {
-        const response = await fetch('/remove-session', {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to close session');
-        }
-        return result;
-    } catch (error) {
-        console.error('Full error details:', error);
-        alert(`Error removing files: ${error.message}`);
-        throw error;
-    }
+    await fetch('/remove-session', {
+        method: 'POST',
+        body: formData
+    });
 
     e.preventDefault();
 });
