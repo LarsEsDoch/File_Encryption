@@ -203,19 +203,12 @@ async function downloadFileFromBackend(filePath) {
         }
 
         const disposition = response.headers.get('content-disposition');
-        let downloadFilename;
-        if (uploadMode === 'folder' && folderName) {
-            downloadFilename = `${folderName}`;
-        } else {
-            downloadFilename = `${sessionID}`;
-        }
+        console.log(filePath);
+        let downloadFilename = filePath.split('/').pop();
+        console.log(downloadFilename);
 
-        if (disposition && disposition.includes('attachment')) {
-            const filenameMatch = disposition.match(/filename="(.+?)"/);
-            if (filenameMatch && filenameMatch.length > 1) {
-                filename = filenameMatch[1];
-            }
-        }
+        
+        console.log(downloadFilename);
 
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
