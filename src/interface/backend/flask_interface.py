@@ -89,19 +89,23 @@ def encrypt_files():
     except Exception as e:
         return {'error': f'Error encrypting files: {str(e)}'}, 500
 
-    return {'message': 'File encryption successfully!'}
+    return {'message': 'File(s) encrypted successfully!'}
 
 
 @app.route('/decrypt-files', methods=['POST'])
 def decrypt_files():
     password = request.form.get('password')
     session_id = request.form.get('sessionID')
+    print(password)
+    print(session_id)
     try:
-        decrypt_directory(password, 1, session_id)
+        decrypted_files = decrypt_directory(password, 1, session_id)
     except Exception as e:
         return {'error': f'Error decrypting files: {str(e)}'}, 500
-
-    return {'message': 'File decryption successfully!'}
+    if decrypted_files is None or decrypted_files == 0:
+        return {'error': 'No files with that password could be found'}, 400
+    else:
+        return {'message': f'{decrypted_files} file(s) decrypted successfully!'}
 
 
 @app.route("/download-folder", methods=['POST'])

@@ -203,12 +203,8 @@ async function downloadFileFromBackend(filePath) {
         }
 
         const disposition = response.headers.get('content-disposition');
-        console.log(filePath);
-        let downloadFilename = filePath.split('/').pop();
-        console.log(downloadFilename);
 
-        
-        console.log(downloadFilename);
+        let downloadFilename = filePath.split('/').pop();
 
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -415,7 +411,7 @@ function handleFiles(files) {
     uploadFiles(files);
 }
 
-function updateUploadUI() {
+async function updateUploadUI() {
     if (uploadMode === 'file') {
 
         fileModeBtn.classList.replace('mode-btn-inactive', 'mode-btn-active');
@@ -457,7 +453,15 @@ function updateMainUI() {
     outputText.value = '';
 }
 
-function resetFileInput() {
+async function resetFileInput() {
+    const formData = new FormData();
+    formData.append("sessionID", sessionID);
+
+    await fetch('/remove-session', {
+        method: 'POST',
+        body: formData
+    });
+
     selectedFiles = null;
     fileInput.value = '';
     uploadPrompt.classList.remove('hidden');
@@ -519,10 +523,9 @@ document.addEventListener('click', function(e) {
             alert('File removal from backend failed, keeping in UI');
         });
     }
-    console.log(e.target);
+
     const downloadButton = e.target.closest('.download-button');
     if (downloadButton) {
-        console.log(e.target);
         const filePath = downloadButton.getAttribute('data-filepath');
 
         e.stopPropagation();

@@ -31,18 +31,18 @@ def decrypt_file(password: str, filename: str, mode: int):
     print(f"File decrypted and saved to 'files/decrypted/{filename}'.\n")
 
 
-def decrypt_directory(password: str, mode: int, lastDir: str = None):
+def decrypt_directory(password: str, mode: int, sessionID: str = None):
 
     if mode == 0:
         if not os.path.exists("files/encrypted/"):
             print("'files/encrypted/' not found.\n")
-            return
+            return None
         os.makedirs("files/decrypted", exist_ok=True)
     elif mode == 1:
-        if not os.path.exists("files/web/uploads/" + lastDir):
-            print(f"'files/web/uploads/{lastDir}' not found.\n")
-            return
-        os.makedirs("files/web/output/" + lastDir, exist_ok=True)
+        if not os.path.exists("files/web/uploads/" + sessionID):
+            print(f"'files/web/uploads/{sessionID}' not found.\n")
+            return None
+        os.makedirs("files/web/output/" + sessionID, exist_ok=True)
 
     decrypted_files = 0
 
@@ -90,6 +90,7 @@ def decrypt_directory(password: str, mode: int, lastDir: str = None):
         else:
             print(f"{decrypted_files} files decrypted and saved to 'files/decrypted/'.\n")
     elif mode == 1:
-        decrypt_in_directory("files/web/uploads/" + lastDir, "files/web/output/" + lastDir)
+        decrypt_in_directory("files/web/uploads/" + sessionID, "files/web/output/" + sessionID)
         return decrypted_files
+
     return None
