@@ -30,7 +30,7 @@ def encrypt_file(password: str, filename: str, mode: int):
         f.write(salt + iv + ciphertext)
     print(f"File encrypted and saved to 'files/encrypted/{filename}.dat'.\n")
 
-def encrypt_directory(password: str, mode: int, lastDir: str = None):
+def encrypt_directory(password: str, mode: int, sessionID: str = None):
     salt = os.urandom(16)
     iv = os.urandom(16)
     key = derive_key(password.encode(), salt)
@@ -38,13 +38,12 @@ def encrypt_directory(password: str, mode: int, lastDir: str = None):
     if mode == 0:
         if not os.path.exists("files/input/"):
             print("'files/input/' not found.\n")
-            return
+            return None
         os.makedirs("files/encrypted", exist_ok=True)
     elif mode == 1:
-        if not os.path.exists("files/web/uploads/" + lastDir):
-            print(f"'files/web/uploads/{lastDir}' not found.\n")
-            return
-        os.makedirs("files/web/output/" + lastDir, exist_ok=True)
+        if not os.path.exists("files/web/uploads/" + sessionID):
+            return None
+        os.makedirs("files/web/output/" + sessionID, exist_ok=True)
 
     encrypted_files = 0
 
@@ -77,12 +76,13 @@ def encrypt_directory(password: str, mode: int, lastDir: str = None):
 
     if mode == 0:
         encrypt_in_directory("files/input", "files/encrypted")
+        if encrypted_files == 0:
+            print("No files encrypted.\n")
+        elif encrypted_files == 1:
+            print(f"{encrypted_files} file encrypted and saved to 'files/encrypted/'.\n")
+        else:
+            print(f"{encrypted_files} files encrypted and saved to 'files/encrypted/'.\n")
     elif mode == 1:
-        encrypt_in_directory("files/web/uploads/" + lastDir, "files/web/output/" + lastDir)
-
-    if encrypted_files == 0:
-        print("No files encrypted.\n")
-    elif encrypted_files == 1:
-        print(f"{encrypted_files} file encrypted and saved to 'files/encrypted/'.\n")
-    else:
-        print(f"{encrypted_files} files encrypted and saved to 'files/encrypted/'.\n")
+        encrypt_in_directory("files/web/uploads/" + sessionID, "files/web/output/" + sessionID)
+        return encrypted_files
+    return None
