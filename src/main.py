@@ -6,7 +6,7 @@ from src.interface.interface import decrypt, encrypt
 from src.utils.utils import create_upload_directory
 
 # mode 0 = console, mode 1 = web, mode 2 = application
-mode = 1
+operation_mode = 1
 
 def run():
     while True:
@@ -27,11 +27,10 @@ def run():
 if __name__ == "__main__":
     print("\n--- Welcome to the File Encryption Tool! ---\n")
 
-    if mode == 0:
+    if operation_mode == 0:
         os.makedirs("files/input", exist_ok=True)
         run()
-    elif mode == 1:
-        os.makedirs("files/web", exist_ok=True)
+    elif operation_mode == 1:
         flask_thread = threading.Thread(target=run_flask, daemon=True)
         flask_thread.start()
         print("Flask server started.")
