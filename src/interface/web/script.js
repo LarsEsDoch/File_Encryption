@@ -20,7 +20,7 @@ const folderIcon = document.getElementById('folder-icon');
 const fileModeBtn = document.getElementById('file-mode-btn');
 const folderModeBtn = document.getElementById('folder-mode-btn');
 
-const sessionID = Date.now().toString();
+const sessionID = crypto.randomUUID();
 
 let isEncryptMode = true;
 let selectedFiles = null;
@@ -37,12 +37,16 @@ decryptTab.addEventListener('click', () => {
 
 fileModeBtn.addEventListener('click', () => {
     uploadMode = 'file';
-    updateUploadUI();
+    updateUploadUI().catch(() => {
+        showNotification('Error starting UI', 'error');
+    });
 });
 
 folderModeBtn.addEventListener('click', () => {
     uploadMode = 'folder';
-    updateUploadUI();
+    updateUploadUI().catch(() => {
+        showNotification('Error starting UI', 'error');
+    });
 });
 
 fileDropZone.addEventListener('click', (e) => {
@@ -59,6 +63,182 @@ fileDropZone.addEventListener('dragover', (e) => {
 });
 
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
+
+fileDropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    fileDropZone.classList.remove('dragover');
+
+    const items = e.dataTransfer.items;
+    if (items && items.length > 0) {
+        const item = items[0].webkitGetAsEntry();
+
+        if (item) {
+            if (item.isFile) {
+                uploadMode = 'file';
+                updateUploadUI().catch(() => {
+                    showNotification('Error starting UI', 'error');
+                });
+                await handleFiles(e.dataTransfer.files);
+            } else if (item.isDirectory) {
+                uploadMode = 'folder';
+                updateUploadUI().catch(() => {
+                    showNotification('Error starting UI', 'error');
+                });
+
+                try {
+                    const files = await readFolderContents(item);
+
+                    const dataTransfer = new DataTransfer();
+                    files.forEach(file => dataTransfer.items.add(file));
+
+                    await handleFiles(dataTransfer.files);
+                } catch (error) {
+                    showNotification(`Error reading folder: ${error.message}`, 'error');
+                }
+            }
+        }
+    } else {
+        await handleFiles(e.dataTransfer.files);
+    }
+});
+
+fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+eyeOffIcon.classList.add('hidden');
+
+toggleVisibilityButton.addEventListener('click', () => {
+    const isPassword = secretKeyInput.type === 'password';
+    secretKeyInput.type = isPassword ? 'text' : 'password';
+    eyeIcon.classList.toggle('hidden', isPassword);
+    eyeOffIcon.classList.toggle('hidden', !isPassword);
+});
+
+downloadAllButton.addEventListener('click', async () => {
+    const formData = new FormData();
+    formData.append("sessionID", sessionID);
+    formData.append("mode", uploadMode);
+
+    try {
+        const response = await fetch('/download-folder', {
+            method: 'POST',
+            body: formData
+        });
+
+        let downloadFilename;
+        if (uploadMode === 'folder' && folderName) {
+            downloadFilename = `${folderName}.zip`;
+        } else {
+            downloadFilename = `${sessionID}.zip`;
+        }
+        await startDownload(response, downloadFilename);
+    } catch (error) {
+        showNotification(error.message, 'error');
+        throw error;
+    }
+
+});
+
+actionButton.addEventListener('click', () => {
+    const key = secretKeyInput.value;
+    if (!selectedFiles) {
+        showNotification('No files selected', 'info');
+        return;
+    }
+    if (!key) {
+        showNotification('Please enter a password first', 'info');
+        return;
+    }
+
+    performCryptoOperation(isEncryptMode).catch(() => {
+        showNotification('Error performing crypto operation', 'error');
+    });
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('remove-button')) {
+        const fileName = e.target.getAttribute('data-filename');
+        const filePath = e.target.getAttribute('data-filepath');
+        const fileItem = e.target.closest('div');
+
+        e.stopPropagation();
+
+        if (uploadMode === 'folder') {
+            resetFileInput().catch(() => {
+                showNotification('Error resetting file input', 'error');
+            });
+            showNotification(`Folder ${folderName} removed successful`, 'info');
+            return;
+        }
+
+        removeFileFromBackend(filePath, fileName).then(() => {
+            fileItem.remove();
+
+            if (selectedFiles) {
+                const remainingFiles = Array.from(selectedFiles).filter(file => {
+                    return file.name !== fileName && (file.webkitRelativePath || file.name) !== filePath;
+                });
+
+                if (remainingFiles.length > 0) {
+                    const dt = new DataTransfer();
+                    remainingFiles.forEach(file => dt.items.add(file));
+                    selectedFiles = dt.files;
+
+                    fileNameDisplay.textContent = `${remainingFiles.length} file${remainingFiles.length > 1 ? 's' : ''} selected`;
+                } else {
+                    selectedFiles = null;
+                    resetFileInput().catch(() => {
+                        showNotification('Error resetting file input', 'error');
+                    });
+                }
+            }
+        });
+    }
+
+    const downloadButton = e.target.closest('.download-button');
+    if (downloadButton) {
+        const filePath = downloadButton.getAttribute('data-filepath');
+
+        e.stopPropagation();
+
+        downloadFileFromBackend(filePath).catch((error) => {
+            showNotification(`Error downloading file: ${error.message}`, 'error');
+        });
+    }
+
+});
+
+window.addEventListener('beforeunload', async function (e) {
+    const formData = new FormData();
+    formData.append("sessionID", sessionID);
+
+    await fetch('/remove-session', {
+        method: 'POST',
+        body: formData
+    });
+
+    e.preventDefault();
+});
+
+async function startDownload(response, downloadFilename) {
+    if (!response.ok) {
+        showNotification(response.statusText, 'error');
+        return;
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = downloadFilename;
+
+    document.body.appendChild(a);
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
 
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notification-container');
@@ -105,6 +285,8 @@ function showNotification(message, type = 'info') {
         remove();
     });
 }
+
+
 async function performCryptoOperation(isEncrypt) {
     const endpoint = isEncrypt ? '/encrypt-files' : '/decrypt-files';
     const formData = new FormData();
@@ -118,11 +300,14 @@ async function performCryptoOperation(isEncrypt) {
         });
 
         const result = await response.json();
-        alert(result.message); //TODO later html alert
+        if (result.error) {
+            showNotification(result.error, 'error');
+            return;
+        }
+        showNotification(result.message, 'success');
         await loadFiles();
-        return result;
     } catch (error) {
-        alert(`Error: ${error.message}`);
+        showNotification(error.message, 'error');
         throw error;
     }
 }
@@ -144,36 +329,41 @@ async function uploadFiles(files) {
         });
 
         const result = await response.json();
-        alert(result.message); //TODO later html alert
-        return result;
+        if (result.error) {
+            showNotification(result.error, 'error');
+            return;
+        }
+        showNotification(result.message, 'success');
     } catch (error) {
-        alert(`Error: ${error.message}`);
+        showNotification(error.message, 'error');
         throw error;
     }
 }
+
 
 async function loadFiles() {
     const formData = new FormData();
     formData.append("sessionID", sessionID);
 
-    const response = await fetch('/files', {
-        method: 'POST',
-        body: formData
-    });
-    const data = await response.json();
-    const list = document.getElementById("files-list");
+    try {
+        const response = await fetch('/files', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        const list = document.getElementById("files-list");
 
-    list.innerHTML = "";
+        list.innerHTML = "";
 
-    if (data.files.length === 0) {
-        list.innerHTML = `<p class="text-center text-gray-500 italic py-6">Nothing here</p>`;
-        return;
-    }
-    
-    data.files.forEach(file => {
-        const li = document.createElement("li");
-        li.className = "flex items-center justify-between py-2";
-        li.innerHTML = `
+        if (data.files.length === 0) {
+            list.innerHTML = `<p class="text-center text-gray-500 italic py-6">Nothing here</p>`;
+            return;
+        }
+
+        data.files.forEach(file => {
+            const li = document.createElement("li");
+            li.className = "flex items-center justify-between py-2";
+            li.innerHTML = `
             <div class="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -190,9 +380,14 @@ async function loadFiles() {
                 </svg>
             </button>
         `;
-        list.appendChild(li);
-    });
+            list.appendChild(li);
+        });
+    } catch (error) {
+        showNotification(`Error loading file list`, 'error');
+        throw error;
+    }
 }
+
 
 async function removeFileFromBackend(filePath, fileName) {
     const formData = new FormData();
@@ -205,22 +400,14 @@ async function removeFileFromBackend(filePath, fileName) {
             method: 'POST',
             body: formData
         });
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error('Server returned non-JSON response:', text);
-            throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
-        }
-
         const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to remove file from backend');
+        if (result.error) {
+            showNotification(`Error removing file: ${fileName}`, 'error');
+            return;
         }
-        return result;
+        showNotification(`File ${fileName} removed successful`, 'info');
     } catch (error) {
-        console.error('Full error details:', error);
-        alert(`Error removing file: ${error.message}`);
+        showNotification(error.message, 'error');
         throw error;
     }
 }
@@ -237,44 +424,17 @@ async function downloadFileFromBackend(filePath) {
             body: formData
         });
 
-        if (!response.ok) {
-            let errorMsg = `Download failed with status: ${response.status}`;
-            try {
-                const err = await response.json();
-                errorMsg = err.message || errorMsg;
-            } catch (e) {
-            }
-            throw new Error(errorMsg);
-        }
-
-        const disposition = response.headers.get('content-disposition');
-
         let downloadFilename = filePath.split('/').pop();
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = downloadFilename;
-
-        document.body.appendChild(a);
-        a.click();
-
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        await startDownload(response, downloadFilename);
     } catch (error) {
-        console.error('Full error details:', error);
-        alert(`Error downloading file: ${error.message}`);
+        showNotification(error.message, 'error');
         throw error;
     }
 }
 
 
 async function readFolderContents(entry, basePath = '') {
-    const files = [];
-
     if (entry.isFile) {
         return new Promise((resolve) => {
             entry.file(file => {
@@ -309,110 +469,16 @@ async function readFolderContents(entry, basePath = '') {
     return [];
 }
 
-fileDropZone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    fileDropZone.classList.remove('dragover');
 
-    const items = e.dataTransfer.items;
-    if (items && items.length > 0) {
-        const item = items[0].webkitGetAsEntry();
-
-        if (item) {
-            if (item.isFile) {
-                uploadMode = 'file';
-                updateUploadUI();
-                handleFiles(e.dataTransfer.files);
-            } else if (item.isDirectory) {
-                uploadMode = 'folder';
-                updateUploadUI();
-
-                try {
-                    const files = await readFolderContents(item);
-
-                    const dataTransfer = new DataTransfer();
-                    files.forEach(file => dataTransfer.items.add(file));
-
-                    handleFiles(dataTransfer.files);
-                } catch (error) {
-                    console.error('Error reading folder contents:', error);
-                    alert('Error reading folder contents');
-                }
-            }
-        }
-    } else {
-        handleFiles(e.dataTransfer.files);
-    }
-});
-
-fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-eyeOffIcon.classList.add('hidden');
-
-toggleVisibilityButton.addEventListener('click', () => {
-    const isPassword = secretKeyInput.type === 'password';
-    secretKeyInput.type = isPassword ? 'text' : 'password';
-    eyeIcon.classList.toggle('hidden', isPassword);
-    eyeOffIcon.classList.toggle('hidden', !isPassword);
-});
-
-downloadAllButton.addEventListener('click', async () => {
+async function handleFiles(files) {
     const formData = new FormData();
     formData.append("sessionID", sessionID);
-    formData.append("mode", uploadMode);
 
-    try {
-        const response = await fetch('/download-folder', {
-            method: 'POST',
-            body: formData
-        });
+    await fetch('/remove-session', {
+        method: 'POST',
+        body: formData
+    });
 
-        if (!response.ok) {
-            let errorMsg = `Download failed with status: ${response.status}`;
-            try {
-                const err = await response.json();
-                errorMsg = err.message || errorMsg;
-            } catch (e) {
-            }
-            throw new Error(errorMsg);
-        }
-
-        const disposition = response.headers.get('content-disposition');
-        let downloadFilename;
-        if (uploadMode === 'folder' && folderName) {
-            downloadFilename = `${folderName}.zip`;
-        } else {
-            downloadFilename = `${sessionID}.zip`;
-        }
-
-        if (disposition && disposition.includes('attachment')) {
-            const filenameMatch = disposition.match(/filename="(.+?)"/);
-            if (filenameMatch && filenameMatch.length > 1) {
-                filename = filenameMatch[1];
-            }
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = downloadFilename;
-
-        document.body.appendChild(a);
-        a.click();
-
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-    } catch (error) {
-        console.error('Full error details:', error);
-        alert(`Error downloading folder: ${error.message}`);
-    }
-
-});
-
-function handleFiles(files) {
     if (files.length === 0) return;
     selectedFiles = files;
 
@@ -453,8 +519,11 @@ function handleFiles(files) {
     fileIcon.classList.remove('hidden');
     folderIcon.classList.add('hidden');
     fileNameDisplay.textContent = `${files.length} file${files.length > 1 ? 's' : ''} selected`;
-    uploadFiles(files);
+    uploadFiles(files).catch(() => {
+        showNotification('Error uploading files', 'error');
+    });
 }
+
 
 async function updateUploadUI() {
     if (uploadMode === 'file') {
@@ -479,8 +548,11 @@ async function updateUploadUI() {
         dropPromptText.textContent = 'Drag & drop a folder here';
         textChoose.textContent = 'Choose Folder';
     }
-    resetFileInput();
+    resetFileInput().catch(() => {
+        showNotification('Error resetting file input', 'error');
+    });
 }
+
 
 function updateMainUI() {
     if (isEncryptMode) {
@@ -493,10 +565,13 @@ function updateMainUI() {
         actionButton.textContent = 'Decrypt';
     }
 
-    resetFileInput();
+    resetFileInput().catch(() => {
+        showNotification('Error resetting file input', 'error');
+    });
     secretKeyInput.value = '';
     outputText.value = '';
 }
+
 
 async function resetFileInput() {
     const formData = new FormData();
@@ -514,89 +589,10 @@ async function resetFileInput() {
     fileDisplay.classList.remove('flex');
 }
 
-actionButton.addEventListener('click', () => {
-    const key = secretKeyInput.value;
-    if (!selectedFiles) {
-        console.error("No files selected");
-        return;
-    }
-    if (!key) {
-        console.error("Secret key is empty");
-        return;
-    }
-
-    performCryptoOperation(isEncryptMode)
-});
-
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('remove-button')) {
-        const fileName = e.target.getAttribute('data-filename');
-        const filePath = e.target.getAttribute('data-filepath');
-        const fileItem = e.target.closest('div');
-
-        e.stopPropagation();
-
-        if (uploadMode === 'folder') {
-            resetFileInput();
-            return;
-        }
-
-        removeFileFromBackend(filePath, fileName).then(() => {
-            fileItem.remove();
-
-            if (selectedFiles) {
-                const remainingFiles = Array.from(selectedFiles).filter(file => {
-                    if (uploadMode === 'folder') {
-                        return folderName !== fileName;
-                    } else {
-                        return file.name !== fileName && (file.webkitRelativePath || file.name) !== filePath;
-                    }
-                });
-
-                if (remainingFiles.length > 0) {
-                    const dt = new DataTransfer();
-                    remainingFiles.forEach(file => dt.items.add(file));
-                    selectedFiles = dt.files;
-
-                    fileNameDisplay.textContent = `${remainingFiles.length} file${remainingFiles.length > 1 ? 's' : ''} selected`;
-                } else {
-                    selectedFiles = null;
-                    resetFileInput();
-                }
-            }
-        }).catch(() => {
-            alert('File removal from backend failed, keeping in UI');
-        });
-    }
-
-    const downloadButton = e.target.closest('.download-button');
-    if (downloadButton) {
-        const filePath = downloadButton.getAttribute('data-filepath');
-
-        e.stopPropagation();
-
-        downloadFileFromBackend(filePath).catch(() => {
-            alert('File could not be downloaded, please try again');
-        });
-    }
-
-});
-
-updateMainUI();
-
 fileModeBtn.classList.add('mode-btn-active');
 folderModeBtn.classList.add('mode-btn-inactive');
 
-updateUploadUI();
-
-window.addEventListener('beforeunload', async function (e) {
-    const formData = new FormData();
-    formData.append("sessionID", sessionID);
-
-    await fetch('/remove-session', {
-        method: 'POST',
-        body: formData
-    });
-
-    e.preventDefault();
+updateMainUI();
+updateUploadUI().catch(() => {
+    showNotification('Error starting UI', 'error');
 });

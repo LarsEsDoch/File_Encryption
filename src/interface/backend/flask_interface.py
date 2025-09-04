@@ -7,7 +7,8 @@ from flask import Flask, request, render_template, send_from_directory, send_fil
 
 from src.decryption.decryption import decrypt_directory
 from src.encryption.encryption import encrypt_directory
-from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file
+from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file, delete_old_upload_dirs, \
+    clear_output_directory
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 WEB_DIR = os.path.join(BASE_DIR, 'src', 'interface', 'web')
@@ -23,7 +24,6 @@ def index():
 def upload_file():
     session_id = request.form.get('sessionID')
     upload_dir = create_upload_directory(session_id)
-
     uploaded_files = request.files.getlist('files')
 
     if not uploaded_files or all(f.filename == '' for f in uploaded_files):
@@ -42,11 +42,14 @@ def upload_file():
             except Exception as e:
                 return {'error': f'Error saving file {uploaded_file.filename}: {str(e)}'}, 500
 
-    return {
-        'message': f"{len(saved_files)} files uploaded successfully!",
-        'files': saved_files,
-        'upload_directory': upload_dir
-    }
+    total_saved_files = len(saved_files)
+
+    if total_saved_files == 0:
+        return {'error': 'No files saved'}, 500
+    elif total_saved_files == 1:
+        return {'message': f"{total_saved_files} file uploaded successfully!"}
+    else:
+        return {'message': f"{total_saved_files} files uploaded successfully!"}
 
 
 
@@ -63,14 +66,6 @@ def remove_file():
         return {'error': 'Invalid file path'}, 400
 
     file = filepath + "/" + filename
-   #file = os.path.join(filepath, filename)
-   #lastDir = session.get('lastDir', '')
-
-   #if not lastDir:
-   #    return {'error': 'No upload directory found'}, 400
-
-   #try:
-   #    delete_file(os.path.join(lastDir, file))
 
     try:
         delete_file(os.path.join('files/web/uploads/' + session_id) + file)
@@ -84,28 +79,53 @@ def remove_file():
 def encrypt_files():
     password = request.form.get('password')
     session_id = request.form.get('sessionID')
-    try:
-        encrypt_directory(password, 1, session_id)
-    except Exception as e:
-        return {'error': f'Error encrypting files: {str(e)}'}, 500
 
-    return {'message': 'File(s) encrypted successfully!'}
+    clear_output_directory(session_id)
+
+    try:
+        files = encrypt_directory(password, 1, session_id)
+    except Exception:
+        return {'error': f'Unknown error occurred'}, 500
+
+    if files is None or files == 0:
+        return {'error': 'Unknown error occurred!'}, 400
+    elif files == 1:
+        return {'message': 'File encrypted successfully!'}
+    else:
+        return {'message': 'Files encrypted successfully!'}
 
 
 @app.route('/decrypt-files', methods=['POST'])
 def decrypt_files():
     password = request.form.get('password')
     session_id = request.form.get('sessionID')
-    print(password)
-    print(session_id)
+
+    clear_output_directory(session_id)
+
     try:
-        decrypted_files = decrypt_directory(password, 1, session_id)
+        result = decrypt_directory(password, 1, session_id)
+
+        if result is None:
+            return {'error': 'No files found to decrypt'}, 400
+
+        decrypted_files, total_encrypted_files, password_errors = result
+
+        if decrypted_files == 0:
+            if total_encrypted_files == 0:
+                return {'error': 'No encrypted files found'}, 400
+            elif password_errors == total_encrypted_files:
+                return {'error': 'Wrong password - could not decrypt any files'}, 400
+            else:
+                return {'error': 'No files could be decrypted'}, 400
+        else:
+            if password_errors > 0:
+                return {
+                    'message': f'{decrypted_files} file(s) decrypted successfully! ({password_errors} file(s) skipped due to wrong password)'}
+            else:
+                return {'message': f'{decrypted_files} file(s) decrypted successfully!'}
+
     except Exception as e:
-        return {'error': f'Error decrypting files: {str(e)}'}, 500
-    if decrypted_files is None or decrypted_files == 0:
-        return {'error': 'No files with that password could be found'}, 400
-    else:
-        return {'message': f'{decrypted_files} file(s) decrypted successfully!'}
+        return {'error': f'Unknown error occurred'}, 500
 
 
 @app.route("/download-folder", methods=['POST'])
@@ -146,7 +166,6 @@ def download_file():
 
     try:
         if not os.path.exists(full_file_path):
-            print("eee" + full_file_path)
             return {'error': f'File {file_path} not found'}, 404
 
         filename = os.path.basename(file_path)
@@ -156,7 +175,6 @@ def download_file():
             download_name=filename
         )
     except Exception as e:
-        print(f"Download error: {str(e)}")
         return {'error': f'Error downloading file: {str(e)}'}, 500
 
 
@@ -186,6 +204,7 @@ def remove_session():
         shutil.rmtree(upload_dir)
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
+    delete_old_upload_dirs()
     return jsonify({"message": "Session removed successfully!"})
 
 
