@@ -3,7 +3,7 @@ import os
 import shutil
 import zipfile
 
-from flask import Flask, request, render_template, send_from_directory, send_file, jsonify
+from flask import Flask, request, render_template, send_file, jsonify
 
 from src.decryption.decryption import decrypt_directory
 from src.encryption.encryption import encrypt_directory

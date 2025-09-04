@@ -8,7 +8,7 @@ def encrypt():
     if mode == 'f':
         filename = input("Enter filename: ")
         password = input("Password: ")
-        encrypt_file(password, filename, 0)
+        encrypt_file(password, filename)
     elif mode == 'd':
         print("Put all files to encrypt in the 'files/input/' directory.")
         password = input("Password: ")
@@ -24,7 +24,7 @@ def decrypt():
     if mode == 'f':
         filename = input("Enter filename: ")
         password = input("Password: ")
-        decrypt_file(password, filename, 0)
+        decrypt_file(password, filename)
     elif mode == 'd':
         print("Put all encrypted files in the 'files/encrypted/' directory to encrypt.")
         print("Files with another password will be ignored.")

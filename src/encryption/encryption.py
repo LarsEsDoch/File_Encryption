@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from src.utils.utils import derive_key
 
 
-def encrypt_file(password: str, filename: str, mode: int):
+def encrypt_file(password: str, filename: str):
     salt = os.urandom(16)
     iv = os.urandom(16)
     key = derive_key(password.encode(), salt)

@@ -3,7 +3,6 @@ import threading
 
 from src.interface.backend.flask_interface import run_flask
 from src.interface.interface import decrypt, encrypt
-from src.utils.utils import create_upload_directory
 
 # mode 0 = console, mode 1 = web, mode 2 = application
 operation_mode = 1
