@@ -26,6 +26,9 @@ def upload_file():
     upload_dir = create_upload_directory(session_id)
     uploaded_files = request.files.getlist('files')
 
+    if not session_id or not uploaded_files:
+        return {'error': 'Missing session ID or uploaded files'}, 400
+
     if not uploaded_files or all(f.filename == '' for f in uploaded_files):
         return {'error': 'No files selected'}, 400
 
@@ -59,8 +62,8 @@ def remove_file():
     filename = request.form.get('fileName')
     session_id = request.form.get('sessionID')
 
-    if not filepath or not filename:
-        return {'error': 'Missing file path or name'}, 400
+    if not filepath or not filename or session_id is None:
+        return {'error': 'Missing file path, name or session ID'}, 400
 
     if '..' in filepath or '..' in filename:
         return {'error': 'Invalid file path'}, 400
@@ -80,16 +83,19 @@ def encrypt_files():
     password = request.form.get('password')
     session_id = request.form.get('sessionID')
 
+    if not session_id or not password:
+        return {'error': 'Missing session ID or password'}, 400
+
     clear_output_directory(session_id)
 
     try:
-        files = encrypt_directory(password, 1, session_id)
-    except Exception:
-        return {'error': f'Unknown error occurred'}, 500
+        encrypted_files = encrypt_directory(password, 1, session_id)
+    except Exception as e:
+        return {'error': f'Error encrypting files: {str(e)}'}, 500
 
-    if files is None or files == 0:
+    if encrypted_files is None or encrypted_files == 0:
         return {'error': 'Unknown error occurred!'}, 400
-    elif files == 1:
+    elif encrypted_files == 1:
         return {'message': 'File encrypted successfully!'}
     else:
         return {'message': 'Files encrypted successfully!'}
@@ -99,6 +105,9 @@ def encrypt_files():
 def decrypt_files():
     password = request.form.get('password')
     session_id = request.form.get('sessionID')
+
+    if not session_id or not password:
+        return {'error': 'Missing session ID or password'}, 400
 
     clear_output_directory(session_id)
 
@@ -120,34 +129,37 @@ def decrypt_files():
         else:
             if password_errors > 0:
                 return {
-                    'message': f'{decrypted_files} file(s) decrypted successfully! ({password_errors} file(s) skipped due to wrong password)'}
+                    'status': 'warning',
+                    'message': f'{decrypted_files} file(s) decrypted successfully!',
+                    'warning': '({password_errors} file(s) skipped due to wrong password)'
+                }, 200
+
             else:
                 return {'message': f'{decrypted_files} file(s) decrypted successfully!'}
 
     except Exception as e:
-        return {'error': f'Unknown error occurred'}, 500
+        return {'error': f'Error decrypting file: {str(e)}'}, 500
 
 
-@app.route("/download-folder", methods=['POST'])
-def download_folder():
+@app.route("/files", methods=['POST'])
+def files():
     session_id = request.form.get('sessionID')
-    folder = os.path.join('files/web/output/' + session_id)
 
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as zipf:
-        for root, dirs, files in os.walk(folder):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, folder)
-                zipf.write(file_path, arcname)
+    if not session_id:
+        return {'error': 'Missing session ID'}, 400
 
-    zip_buffer.seek(0)
-    return send_file(
-        zip_buffer,
-        as_attachment=True,
-        download_name=f"{os.listdir(folder)}.zip",
-        mimetype="application/zip"
-    )
+    output_dir = os.path.join("files", "web", "output", session_id)
+    upload_dir = os.path.join('files/web/uploads/' + session_id)
+    if not upload_dir or not os.path.exists(output_dir):
+        return jsonify({"files": []})
+
+    file_list = []
+    for root, dirs, output_files in os.walk(output_dir):
+        for f in output_files:
+            rel_path = os.path.relpath(os.path.join(root, f), output_dir)
+            file_list.append(rel_path)
+
+    return jsonify({"files": file_list})
 
 
 @app.route("/download-file", methods=['POST'])
@@ -162,7 +174,7 @@ def download_file():
     full_file_path = os.path.join(output_dir, file_path)
 
     if not full_file_path.startswith(output_dir):
-        return {'error': 'Invalid file path'}, 400
+        return {'error': 'Invalid file path'}, 500
 
     try:
         if not os.path.exists(full_file_path):
@@ -178,26 +190,39 @@ def download_file():
         return {'error': f'Error downloading file: {str(e)}'}, 500
 
 
-@app.route("/files", methods=['POST'])
-def files():
+@app.route("/download-folder", methods=['POST'])
+def download_folder():
     session_id = request.form.get('sessionID')
-    output_dir = os.path.join("files", "web", "output", session_id)
-    upload_dir = os.path.join('files/web/uploads/' + session_id)
-    if not upload_dir or not os.path.exists(output_dir):
-        return jsonify({"files": []})
 
-    file_list = []
-    for root, dirs, files in os.walk(output_dir):
-        for f in files:
-            rel_path = os.path.relpath(os.path.join(root, f), output_dir)
-            file_list.append(rel_path)
+    if not session_id:
+        return {'error': 'Missing session ID'}, 400
 
-    return jsonify({"files": file_list})
+    folder = os.path.join('files/web/output/' + session_id)
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zipf:
+        for root, dirs, dir_files in os.walk(folder):
+            for file in dir_files:
+                file_path = os.path.join(root, file)
+                archive_name = os.path.relpath(file_path, folder)
+                zipf.write(file_path, archive_name)
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        as_attachment=True,
+        download_name=f"{os.listdir(folder)}.zip",
+        mimetype="application/zip"
+    )
 
 
 @app.route("/remove-session", methods=['POST'])
 def remove_session():
     session_id = request.form.get('sessionID')
+
+    if not session_id:
+        return {'error': 'Missing session ID'}, 400
+
     upload_dir = os.path.join('files/web/uploads/' + session_id)
     output_dir = os.path.join('files/web/output/' + session_id)
     if os.path.exists(upload_dir):
