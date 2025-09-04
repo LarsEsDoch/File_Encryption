@@ -80,3 +80,41 @@ body {
     width: 90%;
     text-align: left;
 }
+
+.notification {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem; /* rounded-xl */
+    padding: 1rem;
+    background: rgba(31, 41, 55, 0.7); /* bg-gray-800 with opacity */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+
+    transition: all 0.4s ease-in-out;
+    transform: translateX(calc(100% + 1rem));
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background-color: #3b82f6;
+    animation: progress-animation 5s linear forwards;
+}
+
+@keyframes progress-animation {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0;
+    }
+}

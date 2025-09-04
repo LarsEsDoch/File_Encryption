@@ -60,6 +60,51 @@ fileDropZone.addEventListener('dragover', (e) => {
 
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
 
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+
+    let title = 'Info';
+    if (type === 'success') {
+        title = 'Success';
+    } else if (type === 'error') {
+        title = 'Error';
+    } else if (type === 'warning') {
+        title = 'Warning';
+    }
+
+    notification.innerHTML = `
+        <div class="flex justify-between items-start">
+            <div class="pr-2">
+                <p class="font-bold ${type === 'error' ? 'text-red-500' : type === 'warning' ? 'text-orange-500' : type === 'success' ? 'text-green-500' : 'text-white'}">${title}</p>
+                <p class="text-sm ${type === 'error' ? 'text-red-400' : type === 'warning' ? 'text-orange-400' : type === 'success' ? 'text-green-400' : 'text-white'}">${message}</p>
+            </div>
+            <button class="close-notification-btn text-gray-400 hover:text-white flex-shrink-0 -mt-1 -mr-1 p-1">&times;</button>
+        </div>
+        <div class="notification-progress ${type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-orange-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}"></div>
+    `;
+
+    container.appendChild(notification);
+
+    requestAnimationFrame(() => {
+        notification.classList.add('show');
+    });
+
+    const remove = () => {
+        notification.classList.remove('show');
+        notification.addEventListener('transitionend', () => notification.remove(), { once: true });
+    };
+
+    const timer = setTimeout(remove, 5000);
+
+    notification.querySelector('.close-notification-btn').addEventListener('click', () => {
+        clearTimeout(timer);
+        remove();
+    });
+}
 async function performCryptoOperation(isEncrypt) {
     const endpoint = isEncrypt ? '/encrypt-files' : '/decrypt-files';
     const formData = new FormData();
