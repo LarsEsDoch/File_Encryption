@@ -24,8 +24,10 @@ const sessionID = crypto.randomUUID();
 
 let isEncryptMode = true;
 let selectedFiles = null;
-let uploadMode = 'file';
+let isFileMode = true;
 let folderName = "";
+
+let isOperating = false;
 
 encryptTab.addEventListener('click', () => {
     if (!isEncryptMode) { isEncryptMode = true; updateMainUI(); }
@@ -36,14 +38,14 @@ decryptTab.addEventListener('click', () => {
 });
 
 fileModeBtn.addEventListener('click', () => {
-    uploadMode = 'file';
+    isFileMode = true;
     updateUploadUI().catch(() => {
         showNotification('Error starting UI', 'error');
     });
 });
 
 folderModeBtn.addEventListener('click', () => {
-    uploadMode = 'folder';
+    isFileMode = false;
     updateUploadUI().catch(() => {
         showNotification('Error starting UI', 'error');
     });
@@ -74,13 +76,13 @@ fileDropZone.addEventListener('drop', async (e) => {
 
         if (item) {
             if (item.isFile) {
-                uploadMode = 'file';
+                isFileMode = true;
                 updateUploadUI().catch(() => {
                     showNotification('Error starting UI', 'error');
                 });
                 await handleFiles(e.dataTransfer.files);
             } else if (item.isDirectory) {
-                uploadMode = 'folder';
+                isFileMode = false;
                 updateUploadUI().catch(() => {
                     showNotification('Error starting UI', 'error');
                 });
@@ -116,7 +118,6 @@ toggleVisibilityButton.addEventListener('click', () => {
 downloadAllButton.addEventListener('click', async () => {
     const formData = new FormData();
     formData.append("sessionID", sessionID);
-    formData.append("mode", uploadMode);
 
     try {
         const response = await fetch('/download-folder', {
@@ -125,7 +126,7 @@ downloadAllButton.addEventListener('click', async () => {
         });
 
         let downloadFilename;
-        if (uploadMode === 'folder' && folderName) {
+        if (isFileMode === false && folderName) {
             downloadFilename = `${folderName}.zip`;
         } else {
             downloadFilename = `${sessionID}.zip`;
@@ -139,6 +140,11 @@ downloadAllButton.addEventListener('click', async () => {
 });
 
 actionButton.addEventListener('click', () => {
+    if (isOperating) {
+        showNotification('An operation is already in progress.', 'warning');
+        return;
+    }
+
     const key = secretKeyInput.value;
     if (!selectedFiles) {
         showNotification('No files selected', 'info');
@@ -149,8 +155,18 @@ actionButton.addEventListener('click', () => {
         return;
     }
 
+    isOperating = true;
+    actionButton.disabled = true;
+    actionButton.classList.add('cursor-not-allowed', 'opacity-50');
+
     performCryptoOperation(isEncryptMode).catch(() => {
         showNotification('Error performing crypto operation', 'error');
+    }).finally(() => {
+        setTimeout(() => {
+            isOperating = false;
+            actionButton.disabled = false;
+            actionButton.classList.remove('cursor-not-allowed', 'opacity-50');
+        }, 1000);
     });
 });
 
@@ -162,7 +178,7 @@ document.addEventListener('click', function(e) {
 
         e.stopPropagation();
 
-        if (uploadMode === 'folder') {
+        if (isFileMode === false) {
             resetFileInput().catch(() => {
                 showNotification('Error resetting file input', 'error');
             });
@@ -490,7 +506,7 @@ async function handleFiles(files) {
         fileList.removeChild(fileList.firstChild);
     }
 
-    if (uploadMode === 'file') {
+    if (isFileMode === true) {
         Array.from(files).forEach(file => {
             const fileItem = document.createElement('div');
             fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
@@ -526,7 +542,7 @@ async function handleFiles(files) {
 
 
 async function updateUploadUI() {
-    if (uploadMode === 'file') {
+    if (isFileMode === true) {
 
         fileModeBtn.classList.replace('mode-btn-inactive', 'mode-btn-active');
         folderModeBtn.classList.replace('mode-btn-active', 'mode-btn-inactive');

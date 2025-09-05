@@ -121,6 +121,7 @@ def decrypt_files():
 
         if decrypted_files == 0:
             if total_encrypted_files == 0:
+            clear_output_directory(session_id)
                 return {'error': 'No encrypted files found'}, 400
             elif password_errors == total_encrypted_files:
                 return {'error': 'Wrong password - could not decrypt any files'}, 400
@@ -138,6 +139,7 @@ def decrypt_files():
                 return {'message': f'{decrypted_files} file(s) decrypted successfully!'}
 
     except Exception as e:
+        clear_output_directory(session_id)
         return {'error': f'Error decrypting file: {str(e)}'}, 500
 
 

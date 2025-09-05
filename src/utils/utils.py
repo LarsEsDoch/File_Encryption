@@ -23,8 +23,8 @@ def create_upload_directory(sessionID: str):
 
 def clear_output_directory(sessionID: str):
     if os.path.exists("files/web/output/" + sessionID):
-        upload_dir = os.path.join('files/web/output/' + sessionID)
-        shutil.rmtree(upload_dir)
+        output_dir = os.path.join('files/web/output/' + sessionID)
+        shutil.rmtree(output_dir)
 
 def delete_old_upload_dirs():
     now = int(time.time())
