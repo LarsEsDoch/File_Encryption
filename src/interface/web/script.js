@@ -316,16 +316,29 @@ async function performCryptoOperation(isEncrypt) {
         });
 
         const result = await response.json();
+
         if (result.error) {
             showNotification(result.error, 'error');
+            await loadFiles();
             return;
         }
+
         showNotification(result.message, 'success');
-        await loadFiles();
+
+        if (result.status === 'warning') {
+            if (result.warning_password) {
+                showNotification(result.warning_password, 'warning');
+            }
+            if (result.warning_mismatch) {
+                showNotification(result.warning_mismatch, 'warning');
+            }
+        }
     } catch (error) {
         showNotification(error.message, 'error');
+
         throw error;
     }
+    await loadFiles();
 }
 
 

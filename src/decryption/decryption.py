@@ -42,18 +42,22 @@ def decrypt_directory(password: str, mode: int, sessionID: str = None):
             return None
         os.makedirs("files/web/output/" + sessionID, exist_ok=True)
 
-    decrypted_files = 0
+    total_files = 0
     total_encrypted_files = 0
+    decrypted_files = 0
     password_errors = 0
 
     def decrypt_in_directory(encrypted_dir: str, decrypted_dir: str):
-        nonlocal decrypted_files, total_encrypted_files, password_errors
+        nonlocal total_files, total_encrypted_files, decrypted_files, password_errors
 
         for item in os.listdir(encrypted_dir):
             encrypted_path = os.path.join(encrypted_dir, item)
             decrypted_path = os.path.join(decrypted_dir, os.path.splitext(item)[0])
 
             if os.path.isfile(encrypted_path):
+                total_files += 1
+                if item.split(".")[-1] != "dat":
+                    continue
                 total_encrypted_files += 1
                 try:
                     with open(encrypted_path, "rb") as f:
@@ -100,6 +104,6 @@ def decrypt_directory(password: str, mode: int, sessionID: str = None):
             print(f"{decrypted_files} files decrypted and saved to 'files/decrypted/'.\n")
     elif mode == 1:
         decrypt_in_directory("files/web/uploads/" + sessionID, "files/web/output/" + sessionID)
-        return (decrypted_files, total_encrypted_files, password_errors)
+        return (total_files, total_encrypted_files, decrypted_files, password_errors)
 
     return None

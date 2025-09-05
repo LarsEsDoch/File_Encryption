@@ -96,9 +96,9 @@ def encrypt_files():
     if encrypted_files is None or encrypted_files == 0:
         return {'error': 'Unknown error occurred!'}, 400
     elif encrypted_files == 1:
-        return {'message': 'File encrypted successfully!'}
+        return {'message': '1 File encrypted successfully!'}
     else:
-        return {'message': 'Files encrypted successfully!'}
+        return {'message': f'{encrypted_files} files encrypted successfully!'}
 
 
 @app.route('/decrypt-files', methods=['POST'])
@@ -115,28 +115,35 @@ def decrypt_files():
         result = decrypt_directory(password, 1, session_id)
 
         if result is None:
+            clear_output_directory(session_id)
             return {'error': 'No files found to decrypt'}, 400
 
-        decrypted_files, total_encrypted_files, password_errors = result
+        total_files, total_encrypted_files, decrypted_files, password_errors = result
 
         if decrypted_files == 0:
-            if total_encrypted_files == 0:
             clear_output_directory(session_id)
-                return {'error': 'No encrypted files found'}, 400
-            elif password_errors == total_encrypted_files:
-                return {'error': 'Wrong password - could not decrypt any files'}, 400
-            else:
-                return {'error': 'No files could be decrypted'}, 400
-        else:
-            if password_errors > 0:
-                return {
-                    'status': 'warning',
-                    'message': f'{decrypted_files} file(s) decrypted successfully!',
-                    'warning': '({password_errors} file(s) skipped due to wrong password)'
-                }, 200
 
-            else:
-                return {'message': f'{decrypted_files} file(s) decrypted successfully!'}
+            if total_encrypted_files == 0 or total_encrypted_files != total_files:
+                return {'error': 'No encrypted files found'}, 400
+            if password_errors == total_encrypted_files:
+                return {'error': 'No files with that password could be found'}, 400
+            return {'error': 'No files could be decrypted'}, 400
+
+        response = {
+            'message': f'{decrypted_files} file(s) decrypted successfully!'
+        }
+
+        if total_encrypted_files != total_files or password_errors > 0:
+            response['status'] = 'warning'
+
+            if password_errors > 0:
+                response['warning_password'] = f'{password_errors} file(s) skipped due to wrong password'
+
+            mismatch_count = total_files - total_encrypted_files
+            if mismatch_count > 0:
+                response['warning_mismatch'] = f'{mismatch_count} unencrypted file(s)'
+
+        return response, 200
 
     except Exception as e:
         clear_output_directory(session_id)
