@@ -32,13 +32,13 @@ def delete_old_upload_dirs():
     for upload_dir in dirs:
         dir_path = os.path.join('files/web/uploads', upload_dir)
         if os.path.isdir(dir_path):
-            if (now - os.path.getmtime(dir_path)) > 86400000:
+            if (now - os.path.getmtime(dir_path)) > 86400:
                 shutil.rmtree(dir_path)
     dirs = os.listdir('files/web/output')
     for upload_dir in dirs:
         dir_path = os.path.join('files/web/uploads', upload_dir)
         if os.path.isdir(dir_path):
-            if (now - os.path.getmtime(dir_path)) > 86400000:
+            if (now - os.path.getmtime(dir_path)) > 86400:
                 shutil.rmtree(dir_path)
 
 
