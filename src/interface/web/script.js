@@ -26,18 +26,29 @@ let isEncryptMode = true;
 let selectedFiles = null;
 let isFileMode = true;
 let folderName = "";
-
 let isOperating = false;
 
 encryptTab.addEventListener('click', () => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     if (!isEncryptMode) { isEncryptMode = true; updateMainUI(); }
 });
 
 decryptTab.addEventListener('click', () => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     if (isEncryptMode) { isEncryptMode = false; updateMainUI(); }
 });
 
 fileModeBtn.addEventListener('click', () => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     isFileMode = true;
     updateUploadUI().catch(() => {
         showNotification('Error starting UI', 'error');
@@ -45,6 +56,10 @@ fileModeBtn.addEventListener('click', () => {
 });
 
 folderModeBtn.addEventListener('click', () => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     isFileMode = false;
     updateUploadUI().catch(() => {
         showNotification('Error starting UI', 'error');
@@ -52,7 +67,10 @@ folderModeBtn.addEventListener('click', () => {
 });
 
 fileDropZone.addEventListener('click', (e) => {
-
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     if (e.target.classList.contains('remove-button')) {
         return;
     }
@@ -67,6 +85,10 @@ fileDropZone.addEventListener('dragover', (e) => {
 fileDropZone.addEventListener('dragleave', () => fileDropZone.classList.remove('dragover'));
 
 fileDropZone.addEventListener('drop', async (e) => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     e.preventDefault();
     fileDropZone.classList.remove('dragover');
 
@@ -104,7 +126,15 @@ fileDropZone.addEventListener('drop', async (e) => {
     }
 });
 
-fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+fileInput.addEventListener('change', (e) => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
+    handleFiles(e.target.files).catch(() => {
+        showNotification('Error handling files', 'error');
+    });
+});
 
 eyeOffIcon.classList.add('hidden');
 
@@ -116,8 +146,14 @@ toggleVisibilityButton.addEventListener('click', () => {
 });
 
 downloadAllButton.addEventListener('click', async () => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
     const formData = new FormData();
     formData.append("sessionID", sessionID);
+
+    isOperating = "downloading";
 
     try {
         const response = await fetch('/download-folder', {
@@ -135,13 +171,15 @@ downloadAllButton.addEventListener('click', async () => {
     } catch (error) {
         showNotification(error.message, 'error');
         throw error;
+    } finally {
+        isOperating = false;
     }
 
 });
 
 actionButton.addEventListener('click', () => {
     if (isOperating) {
-        showNotification('An operation is already in progress.', 'warning');
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
         return;
     }
 
@@ -155,7 +193,7 @@ actionButton.addEventListener('click', () => {
         return;
     }
 
-    isOperating = true;
+    isOperating = isEncryptMode ? 'encrypting' : 'decrypting';
     actionButton.disabled = true;
     actionButton.classList.add('cursor-not-allowed', 'opacity-50');
 
@@ -172,11 +210,14 @@ actionButton.addEventListener('click', () => {
 
 document.addEventListener('click', function(e) {
     if (e.target && e.target.classList.contains('remove-button')) {
+        e.stopPropagation();
+        if (isOperating) {
+            showNotification('An operation is in progress. Please wait!', 'warning');
+            return;
+        }
         const fileName = e.target.getAttribute('data-filename');
         const filePath = e.target.getAttribute('data-filepath');
         const fileItem = e.target.closest('div');
-
-        e.stopPropagation();
 
         if (isFileMode === false) {
             resetFileInput().catch(() => {
@@ -234,6 +275,8 @@ window.addEventListener('beforeunload', async function (e) {
 
     e.preventDefault();
 });
+
+
 
 async function startDownload(response, downloadFilename) {
     if (!response.ok) {
@@ -350,6 +393,7 @@ async function uploadFiles(files) {
         const filePath = file.webkitRelativePath || file.name;
         formData.append('files', file, filePath);
     });
+    isOperating = "uploading";
 
     try {
         const response = await fetch('/upload', {
@@ -366,6 +410,8 @@ async function uploadFiles(files) {
     } catch (error) {
         showNotification(error.message, 'error');
         throw error;
+    } finally {
+        isOperating = false;
     }
 }
 
@@ -443,9 +489,16 @@ async function removeFileFromBackend(filePath, fileName) {
 
 
 async function downloadFileFromBackend(filePath) {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
+
     const formData = new FormData();
     formData.append("filePath", filePath);
     formData.append("sessionID", sessionID);
+
+    isOperating = "downloading";
 
     try {
         const response = await fetch('/download-file', {
@@ -459,6 +512,8 @@ async function downloadFileFromBackend(filePath) {
     } catch (error) {
         showNotification(error.message, 'error');
         throw error;
+    } finally {
+        isOperating = false;
     }
 }
 
@@ -507,6 +562,8 @@ async function handleFiles(files) {
         method: 'POST',
         body: formData
     });
+
+    await loadFiles();
 
     if (files.length === 0) return;
     selectedFiles = files;
@@ -577,9 +634,11 @@ async function updateUploadUI() {
         dropPromptText.textContent = 'Drag & drop a folder here';
         textChoose.textContent = 'Choose Folder';
     }
-    resetFileInput().catch(() => {
-        showNotification('Error resetting file input', 'error');
-    });
+    if (selectedFiles) {
+        resetFileInput().catch(() => {
+            showNotification('Error resetting file input', 'error');
+        });
+    }
 }
 
 
@@ -594,9 +653,11 @@ function updateMainUI() {
         actionButton.textContent = 'Decrypt';
     }
 
-    resetFileInput().catch(() => {
-        showNotification('Error resetting file input', 'error');
-    });
+    if (selectedFiles) {
+        resetFileInput().catch(() => {
+            showNotification('Error resetting file input', 'error');
+        });
+    }
     secretKeyInput.value = '';
     outputText.value = '';
 }
@@ -616,6 +677,7 @@ async function resetFileInput() {
     uploadPrompt.classList.remove('hidden');
     fileDisplay.classList.add('hidden');
     fileDisplay.classList.remove('flex');
+    await loadFiles();
 }
 
 fileModeBtn.classList.add('mode-btn-active');
