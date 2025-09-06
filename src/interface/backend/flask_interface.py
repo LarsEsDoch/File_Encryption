@@ -2,6 +2,7 @@ import io
 import os
 import shutil
 import zipfile
+from threading import Lock
 
 from flask import Flask, request, render_template, send_file, jsonify
 
@@ -9,6 +10,9 @@ from src.decryption.decryption import decrypt_directory
 from src.encryption.encryption import encrypt_directory
 from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file, delete_old_upload_dirs, \
     clear_output_directory
+
+active_sessions = set()
+session_lock = Lock()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 WEB_DIR = os.path.join(BASE_DIR, 'src', 'interface', 'web')
@@ -23,11 +27,17 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     session_id = request.form.get('sessionID')
+
     upload_dir = create_upload_directory(session_id)
     uploaded_files = request.files.getlist('files')
 
     if not session_id or not uploaded_files:
         return {'error': 'Missing session ID or uploaded files'}, 400
+
+    with session_lock:
+        if session_id in active_sessions:
+            return {'error': 'Session is busy with another operation'}, 400
+        active_sessions.add(session_id)
 
     if not uploaded_files or all(f.filename == '' for f in uploaded_files):
         return {'error': 'No files selected'}, 400
@@ -47,13 +57,15 @@ def upload_file():
 
     total_saved_files = len(saved_files)
 
+    with session_lock:
+        if session_id in active_sessions:
+            active_sessions.remove(session_id)
     if total_saved_files == 0:
         return {'error': 'No files saved'}, 500
     elif total_saved_files == 1:
         return {'message': f"{total_saved_files} file uploaded successfully!"}
     else:
         return {'message': f"{total_saved_files} files uploaded successfully!"}
-
 
 
 @app.route('/remove-file', methods=['POST'])
@@ -64,6 +76,11 @@ def remove_file():
 
     if not filepath or not filename or session_id is None:
         return {'error': 'Missing file path, name or session ID'}, 400
+
+    with session_lock:
+        if session_id in active_sessions:
+            return {'error': 'Session is busy with another operation'}, 400
+        active_sessions.add(session_id)
 
     if '..' in filepath or '..' in filename:
         return {'error': 'Invalid file path'}, 400
@@ -86,12 +103,23 @@ def encrypt_files():
     if not session_id or not password:
         return {'error': 'Missing session ID or password'}, 400
 
+    with session_lock:
+        if session_id in active_sessions:
+            return {'error': 'Session is busy with another operation'}, 400
+        active_sessions.add(session_id)
+
     clear_output_directory(session_id)
 
     try:
         encrypted_files = encrypt_directory(password, 1, session_id)
     except Exception as e:
+        with session_lock:
+            active_sessions.remove(session_id)
         return {'error': f'Error encrypting files: {str(e)}'}, 500
+    finally:
+        with session_lock:
+            if session_id in active_sessions:
+                active_sessions.remove(session_id)
 
     if encrypted_files is None or encrypted_files == 0:
         return {'error': 'Unknown error occurred!'}, 400
@@ -108,6 +136,11 @@ def decrypt_files():
 
     if not session_id or not password:
         return {'error': 'Missing session ID or password'}, 400
+
+    with session_lock:
+        if session_id in active_sessions:
+            return {'error': 'Session is busy with another operation'}, 400
+        active_sessions.add(session_id)
 
     clear_output_directory(session_id)
 
@@ -147,7 +180,13 @@ def decrypt_files():
 
     except Exception as e:
         clear_output_directory(session_id)
+        with session_lock:
+            active_sessions.remove(session_id)
         return {'error': f'Error decrypting file: {str(e)}'}, 500
+    finally:
+        with session_lock:
+            if session_id in active_sessions:
+                active_sessions.remove(session_id)
 
 
 @app.route("/files", methods=['POST'])
@@ -228,6 +267,11 @@ def download_folder():
 @app.route("/remove-session", methods=['POST'])
 def remove_session():
     session_id = request.form.get('sessionID')
+
+    with session_lock:
+        if session_id in active_sessions:
+            return {'error': 'Session is busy with another operation'}, 400
+        active_sessions.add(session_id)
 
     if not session_id:
         return {'error': 'Missing session ID'}, 400
