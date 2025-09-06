@@ -146,14 +146,8 @@ toggleVisibilityButton.addEventListener('click', () => {
 });
 
 downloadAllButton.addEventListener('click', async () => {
-    if (isOperating) {
-        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
-        return;
-    }
     const formData = new FormData();
     formData.append("sessionID", sessionID);
-
-    isOperating = "downloading";
 
     try {
         const response = await fetch('/download-folder', {
@@ -165,16 +159,13 @@ downloadAllButton.addEventListener('click', async () => {
         if (isFileMode === false && folderName) {
             downloadFilename = `${folderName}.zip`;
         } else {
-            downloadFilename = `${sessionID}.zip`;
+            downloadFilename = `${getFormattedTimestamp()}.zip`;
         }
         await startDownload(response, downloadFilename);
     } catch (error) {
         showNotification(error.message, 'error');
         throw error;
-    } finally {
-        isOperating = false;
     }
-
 });
 
 actionButton.addEventListener('click', () => {
@@ -261,7 +252,6 @@ document.addEventListener('click', function(e) {
             showNotification(`Error downloading file: ${error.message}`, 'error');
         });
     }
-
 });
 
 window.addEventListener('beforeunload', async function (e) {
@@ -276,6 +266,17 @@ window.addEventListener('beforeunload', async function (e) {
     e.preventDefault();
 });
 
+function getFormattedTimestamp() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+}
 
 
 async function startDownload(response, downloadFilename) {
@@ -489,16 +490,9 @@ async function removeFileFromBackend(filePath, fileName) {
 
 
 async function downloadFileFromBackend(filePath) {
-    if (isOperating) {
-        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
-        return;
-    }
-
     const formData = new FormData();
     formData.append("filePath", filePath);
     formData.append("sessionID", sessionID);
-
-    isOperating = "downloading";
 
     try {
         const response = await fetch('/download-file', {
@@ -512,8 +506,6 @@ async function downloadFileFromBackend(filePath) {
     } catch (error) {
         showNotification(error.message, 'error');
         throw error;
-    } finally {
-        isOperating = false;
     }
 }
 
