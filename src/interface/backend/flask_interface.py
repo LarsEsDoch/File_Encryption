@@ -91,6 +91,10 @@ def remove_file():
         delete_file(os.path.join('files/web/uploads/' + session_id) + file)
     except Exception as e:
         return {'error': f'Error deleting file {filename}: {str(e)}'}, 500
+    finally:
+        with session_lock:
+            if session_id in active_sessions:
+                active_sessions.remove(session_id)
 
     return {'message': 'File deleted successfully!'}
 
@@ -177,7 +181,6 @@ def decrypt_files():
                 response['warning_mismatch'] = f'{mismatch_count} unencrypted file(s)'
 
         return response, 200
-
     except Exception as e:
         clear_output_directory(session_id)
         with session_lock:
@@ -283,6 +286,9 @@ def remove_session():
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     delete_old_upload_dirs()
+    with session_lock:
+        if session_id in active_sessions:
+            active_sessions.remove(session_id)
     return jsonify({"message": "Session removed successfully!"})
 
 
