@@ -92,6 +92,17 @@ fileDropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
     fileDropZone.classList.remove('dragover');
 
+    let files = e.dataTransfer.files;
+    if (!isEncryptMode) {
+        const validFiles = Array.from(e.dataTransfer.files).filter(file => file.name.toLowerCase().endsWith('.dat'));
+        if (validFiles.length === 0) {
+            showNotification('Please select only .dat files in decrypt mode!', 'warning');
+        } else if (files.length - validFiles.length >= 1) {
+            showNotification(`${files.length - validFiles.length} files are not encrypted!`, 'warning');
+        }
+        files = validFiles;
+    }
+
     const items = e.dataTransfer.items;
     if (items && items.length > 0) {
         const item = items[0].webkitGetAsEntry();
@@ -100,13 +111,13 @@ fileDropZone.addEventListener('drop', async (e) => {
             if (item.isFile) {
                 isFileMode = true;
                 updateUploadUI().catch(() => {
-                    showNotification('Error starting UI', 'error');
+                    showNotification('Error starting UI!', 'error');
                 });
-                await handleFiles(e.dataTransfer.files);
+                await handleFiles(files);
             } else if (item.isDirectory) {
                 isFileMode = false;
                 updateUploadUI().catch(() => {
-                    showNotification('Error starting UI', 'error');
+                    showNotification('Error starting UI!', 'error');
                 });
 
                 try {
@@ -117,12 +128,12 @@ fileDropZone.addEventListener('drop', async (e) => {
 
                     await handleFiles(dataTransfer.files);
                 } catch (error) {
-                    showNotification(`Error reading folder: ${error.message}`, 'error');
+                    showNotification(`Error reading folder: ${error.message}!`, 'error');
                 }
             }
         }
     } else {
-        await handleFiles(e.dataTransfer.files);
+        await handleFiles(files);
     }
 });
 
@@ -132,7 +143,7 @@ fileInput.addEventListener('change', (e) => {
         return;
     }
     handleFiles(e.target.files).catch(() => {
-        showNotification('Error handling files', 'error');
+        showNotification('Error handling files!', 'error');
     });
 });
 
@@ -191,11 +202,11 @@ actionButton.addEventListener('click', () => {
 
     const key = secretKeyInput.value;
     if (!selectedFiles) {
-        showNotification('No files selected', 'info');
+        showNotification('No files selected!', 'info');
         return;
     }
     if (!key) {
-        showNotification('Please enter a password first', 'info');
+        showNotification('Please enter a password first!', 'info');
         return;
     }
 
@@ -204,7 +215,7 @@ actionButton.addEventListener('click', () => {
     actionButton.classList.add('cursor-not-allowed', 'opacity-50');
 
     performCryptoOperation(isEncryptMode).catch(() => {
-        showNotification('Error performing crypto operation', 'error');
+        showNotification('Error performing crypto operation!', 'error');
     }).finally(() => {
         setTimeout(() => {
             isOperating = false;
@@ -227,9 +238,9 @@ document.addEventListener('click', function(e) {
 
         if (isFileMode === false) {
             resetFileInput().catch(() => {
-                showNotification('Error resetting file input', 'error');
+                showNotification('Error resetting file input!', 'error');
             });
-            showNotification(`Folder ${folderName} removed successful`, 'info');
+            showNotification(`Folder ${folderName} removed successful.`, 'info');
             return;
         }
 
@@ -250,7 +261,7 @@ document.addEventListener('click', function(e) {
                 } else {
                     selectedFiles = null;
                     resetFileInput().catch(() => {
-                        showNotification('Error resetting file input', 'error');
+                        showNotification('Error resetting file input!', 'error');
                     });
                 }
             }
@@ -264,7 +275,7 @@ document.addEventListener('click', function(e) {
         e.stopPropagation();
 
         downloadFileFromBackend(filePath).catch((error) => {
-            showNotification(`Error downloading file: ${error.message}`, 'error');
+            showNotification(`Error downloading file: ${error.message}!`, 'error');
         });
     }
 });
@@ -472,7 +483,7 @@ async function loadFiles() {
             list.appendChild(li);
         });
     } catch (error) {
-        showNotification(`Error loading file list`, 'error');
+        showNotification(`Error loading file list!`, 'error');
         throw error;
     }
 }
@@ -491,10 +502,10 @@ async function removeFileFromBackend(filePath, fileName) {
         });
         const result = await response.json();
         if (result.error) {
-            showNotification(`Error removing file: ${fileName}`, 'error');
+            showNotification(`Error removing file: ${fileName}!`, 'error');
             return;
         }
-        showNotification(`File ${fileName} removed successful`, 'info');
+        showNotification(`File ${fileName} removed successful.`, 'info');
     } catch (error) {
         showNotification(error.message, 'error');
         throw error;
@@ -563,6 +574,8 @@ async function handleFiles(files) {
     const formData = new FormData();
     formData.append("sessionID", sessionID);
 
+    if (files.length === 0) return;
+
     await fetch('/remove-session', {
         method: 'POST',
         body: formData
@@ -570,7 +583,6 @@ async function handleFiles(files) {
 
     await loadFiles();
 
-    if (files.length === 0) return;
     selectedFiles = files;
 
     uploadPrompt.classList.add('hidden');
@@ -606,12 +618,17 @@ async function handleFiles(files) {
         fileList.appendChild(fileItem);
     }
 
+    if (isFileMode === true) {
+        fileIcon.classList.remove('hidden');
+        folderIcon.classList.add('hidden');
+    } else {
+        fileIcon.classList.add('hidden');
+        folderIcon.classList.remove('hidden');
+    }
 
-    fileIcon.classList.remove('hidden');
-    folderIcon.classList.add('hidden');
     fileNameDisplay.textContent = `${files.length} file${files.length > 1 ? 's' : ''} selected`;
     uploadFiles(files).catch(() => {
-        showNotification('Error uploading files', 'error');
+        showNotification('Error uploading files!', 'error');
     });
 }
 
@@ -641,7 +658,7 @@ async function updateUploadUI() {
     }
     if (selectedFiles) {
         resetFileInput().catch(() => {
-            showNotification('Error resetting file input', 'error');
+            showNotification('Error resetting file input!', 'error');
         });
     }
 }
@@ -652,19 +669,20 @@ function updateMainUI() {
         encryptTab.classList.replace('tab-inactive', 'tab-active');
         decryptTab.classList.replace('tab-active', 'tab-inactive');
         actionButton.textContent = 'Encrypt';
+        fileInput.removeAttribute('accept');
     } else {
         decryptTab.classList.replace('tab-inactive', 'tab-active');
         encryptTab.classList.replace('tab-active', 'tab-inactive');
         actionButton.textContent = 'Decrypt';
+        fileInput.setAttribute('accept', '.dat');
     }
-
     if (selectedFiles) {
         resetFileInput().catch(() => {
-            showNotification('Error resetting file input', 'error');
+            showNotification('Error resetting file input!', 'error');
         });
     }
+
     secretKeyInput.value = '';
-    outputText.value = '';
 }
 
 
@@ -690,5 +708,5 @@ folderModeBtn.classList.add('mode-btn-inactive');
 
 updateMainUI();
 updateUploadUI().catch(() => {
-    showNotification('Error starting UI', 'error');
+    showNotification('Error starting UI!', 'error');
 });
