@@ -146,6 +146,11 @@ toggleVisibilityButton.addEventListener('click', () => {
 });
 
 downloadAllButton.addEventListener('click', async () => {
+    const list = document.getElementById("files-list");
+    if (list.innerHTML.trim() === `<p class="text-center text-gray-500 italic py-6">Nothing here</p>`) {
+        showNotification('No files to download!', 'info');
+        return;
+    }
     const formData = new FormData();
     formData.append("sessionID", sessionID);
 
@@ -154,6 +159,16 @@ downloadAllButton.addEventListener('click', async () => {
             method: 'POST',
             body: formData
         });
+
+        if (!response.ok) {
+            const result = await response.json();
+
+            if (result.error) {
+                showNotification(result.error, 'error');
+                await loadFiles();
+                return;
+            }
+        }
 
         let downloadFilename;
         if (isFileMode === false && folderName) {

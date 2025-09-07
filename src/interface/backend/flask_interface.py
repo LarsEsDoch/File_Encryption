@@ -251,20 +251,27 @@ def download_folder():
     folder = os.path.join('files/web/output/' + session_id)
 
     zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as zipf:
-        for root, dirs, dir_files in os.walk(folder):
-            for file in dir_files:
-                file_path = os.path.join(root, file)
-                archive_name = os.path.relpath(file_path, folder)
-                zipf.write(file_path, archive_name)
 
-    zip_buffer.seek(0)
-    return send_file(
-        zip_buffer,
-        as_attachment=True,
-        download_name=f"{os.listdir(folder)}.zip",
-        mimetype="application/zip"
-    )
+    if not os.path.exists(folder):
+        return {'error': f'Session not found'}, 404
+    try:
+        with zipfile.ZipFile(zip_buffer, "w") as zipf:
+            for root, dirs, dir_files in os.walk(folder):
+                for file in dir_files:
+                    file_path = os.path.join(root, file)
+                    archive_name = os.path.relpath(file_path, folder)
+                    zipf.write(file_path, archive_name)
+
+        zip_buffer.seek(0)
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name=f"{os.listdir(folder)}.zip",
+            mimetype="application/zip"
+        )
+    except Exception as e:
+        return {'error': f'Error downloading folder: {str(e)}'}, 500
+
 
 
 @app.route("/remove-session", methods=['POST'])
