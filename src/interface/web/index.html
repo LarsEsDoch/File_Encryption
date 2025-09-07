@@ -48,8 +48,10 @@
                     <input type="file" id="file-input" class="hidden" multiple/>
                     <div id="upload-prompt" class="flex flex-col items-center justify-center text-gray-400">
 
-                        <svg id="upload-icon" class="w-12 h-12 mb-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V8.25c0-1.12.93-2.037 2.09-1.928a48.108 48.108 0 0113.82 0c1.16.11 2.09 1.008 2.09 2.138v9c0 1.12-.93 2.037-2.09 1.928a48.108 48.108 0 01-13.82 0c-1.16-.11-2.09-1.008-2.09-2.138z" />
+                        <svg id="upload-icon" class="w-16 h-16 mb-3" xmlns="http://www.w3.org/2000/svg"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M12 9.5V15.5M12 9.5L10 11.5M12 9.5L14 11.5M8.4 19C5.41766 19 3 16.6044 3 13.6493C3 11.2001 4.8 8.9375 7.5 8.5C8.34694 6.48637 10.3514 5 12.6893 5C15.684 5 18.1317 7.32251 18.3 10.25C19.8893 10.9449 21 12.6503 21 14.4969C21 16.9839 18.9853 19 16.5 19L8.4 19Z"/>
                         </svg>
                         <p id="drop-prompt-text" class="font-semibold">Drag & drop a file here</p>
                         <p class="text-sm">or <span id="text-choose" class="text-blue-400 font-medium">Choose file</span></p>
@@ -57,11 +59,14 @@
                     <div id="file-display" class="hidden flex-col items-center justify-center text-gray-200">
                         <div id="fileList" class="w-full max-h-32 overflow-y-auto mt-4"></div>
 
-                        <svg id="file-icon" class="w-12 h-12 mt-3 mb-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        <svg id="file-icon" class="w-16 h-16 mt-3 mb-3" xmlns="http://www.w3.org/2000/svg"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.5199 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"/>
                         </svg>
 
-                        <svg id="folder-icon" class="w-12 h-12 mb-3 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+
+                        <svg id="folder-icon" class="w-16 h-16 mb-3 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                         </svg>
                         <p id="file-name" class="font-semibold text-center"></p>
@@ -97,7 +102,7 @@
                         <div class="flex justify-between items-center mb-3">
                             <button id="download-all-btn"
                                class="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-200 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
                                 </svg>

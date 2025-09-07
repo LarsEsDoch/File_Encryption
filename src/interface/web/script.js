@@ -448,12 +448,10 @@ async function loadFiles() {
                 <span>${file}</span>
             </div>
             <button class="download-button" data-filepath="${file}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                          d="M3 14a1 1 0 011-1h3v-4h4v4h3a1 1 0 011 1v2a1
-                             1 0 01-1 1H4a1 1 0 01-1-1v-2zM7 10l3 3 3-3H11V4H9v6H7z"
-                          clip-rule="evenodd"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+                </svg> 
             </button>
         `;
             list.appendChild(li);
