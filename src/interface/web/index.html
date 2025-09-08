@@ -44,7 +44,7 @@
                         <button id="folder-mode-btn" class="px-3 py-1 rounded-md transition-all duration-300">Folder</button>
                     </div>
                 </div>
-                <div id="file-drop-zone" class="file-drop-zone rounded-lg p-8 text-center cursor-pointer">
+                <div id="file-drop-zone" class="file-drop-zone relative rounded-lg p-8 text-center cursor-pointer">
                     <input type="file" id="file-input" class="hidden" multiple/>
                     <div id="upload-prompt" class="flex flex-col items-center justify-center text-gray-400">
 
@@ -70,7 +70,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                         </svg>
                         <p id="file-name" class="font-semibold text-center"></p>
+
                     </div>
+
+                    <input type="file" id="file-input-add" class="hidden" multiple/>
+                    <button id="add-files-btn" class="absolute bottom-4 right-4 w-10 h-10 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-blue-600">
+                        +
+                    </button>
                 </div>
             </div>
 

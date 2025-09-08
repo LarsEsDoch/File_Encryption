@@ -2,7 +2,6 @@ const encryptTab = document.getElementById('encrypt-tab');
 const decryptTab = document.getElementById('decrypt-tab');
 const actionButton = document.getElementById('action-button');
 const secretKeyInput = document.getElementById('password');
-const outputText = document.getElementById('output-text');
 const toggleVisibilityButton = document.getElementById('toggle-key-visibility');
 const eyeIcon = document.getElementById('eye-icon');
 const eyeOffIcon = document.getElementById('eye-off-icon');
@@ -11,7 +10,9 @@ const downloadAllButton = document.getElementById('download-all-btn');
 const fileDropZone = document.getElementById('file-drop-zone');
 const fileInput = document.getElementById('file-input');
 const uploadPrompt = document.getElementById('upload-prompt');
+const fileInputAdd = document.getElementById('file-input-add');
 const dropPromptText = document.getElementById('drop-prompt-text');
+const addFilesBtn = document.getElementById('add-files-btn');
 const textChoose = document.getElementById('text-choose');
 const fileDisplay = document.getElementById('file-display');
 const fileNameDisplay = document.getElementById('file-name');
@@ -71,9 +72,10 @@ fileDropZone.addEventListener('click', (e) => {
         showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
         return;
     }
-    if (e.target.classList.contains('remove-button')) {
+    if (e.target.classList.contains('remove-button') || e.target.closest('#file-input-add')) {
         return;
     }
+
     fileInput.click();
 });
 
@@ -113,7 +115,7 @@ fileDropZone.addEventListener('drop', async (e) => {
                 updateUploadUI().catch(() => {
                     showNotification('Error starting UI!', 'error');
                 });
-                await handleFiles(files);
+                await handleFiles(files, 'new');
             } else if (item.isDirectory) {
                 isFileMode = false;
                 updateUploadUI().catch(() => {
@@ -126,14 +128,14 @@ fileDropZone.addEventListener('drop', async (e) => {
                     const dataTransfer = new DataTransfer();
                     files.forEach(file => dataTransfer.items.add(file));
 
-                    await handleFiles(dataTransfer.files);
+                    await handleFiles(dataTransfer.files, 'new');
                 } catch (error) {
                     showNotification(`Error reading folder: ${error.message}!`, 'error');
                 }
             }
         }
     } else {
-        await handleFiles(files);
+        await handleFiles(files, 'new');
     }
 });
 
@@ -142,9 +144,25 @@ fileInput.addEventListener('change', (e) => {
         showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
         return;
     }
-    handleFiles(e.target.files).catch(() => {
+    handleFiles(e.target.files, 'new').catch(() => {
         showNotification('Error handling files!', 'error');
     });
+});
+
+fileInputAdd.addEventListener('change', (e) => {
+    if (isOperating) {
+        showNotification(`An ${isOperating} operation is in progress. Please wait!`, 'warning');
+        return;
+    }
+
+    handleFiles(e.target.files, 'add').catch(() => {
+        showNotification('Error handling files!', 'error');
+    });
+})
+
+addFilesBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileInputAdd.click();
 });
 
 eyeOffIcon.classList.add('hidden');
@@ -291,6 +309,20 @@ window.addEventListener('beforeunload', async function (e) {
 
     e.preventDefault();
 });
+
+function mergeFileLists(listA, listB) {
+    const dt = new DataTransfer();
+
+    if (listA) {
+        Array.from(listA).forEach(file => dt.items.add(file));
+    }
+    if (listB) {
+        Array.from(listB).forEach(file => dt.items.add(file));
+    }
+
+    return dt.files;
+}
+
 
 function getFormattedTimestamp() {
     const now = new Date();
@@ -570,20 +602,25 @@ async function readFolderContents(entry, basePath = '') {
 }
 
 
-async function handleFiles(files) {
+async function handleFiles(files, mode) {
     const formData = new FormData();
     formData.append("sessionID", sessionID);
 
     if (files.length === 0) return;
 
-    await fetch('/remove-session', {
-        method: 'POST',
-        body: formData
-    });
+    if (mode !== 'add')
+        await fetch('/remove-session', {
+            method: 'POST',
+            body: formData
+        });
 
     await loadFiles();
 
-    selectedFiles = files;
+    if (mode !== 'add') {
+        selectedFiles = files;
+    } else {
+        selectedFiles = mergeFileLists(selectedFiles, files);
+    }
 
     uploadPrompt.classList.add('hidden');
     fileDisplay.classList.remove('hidden');
@@ -594,7 +631,7 @@ async function handleFiles(files) {
     }
 
     if (isFileMode === true) {
-        Array.from(files).forEach(file => {
+        Array.from(selectedFiles).forEach(file => {
             const fileItem = document.createElement('div');
             fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
             fileItem.innerHTML = `
@@ -670,11 +707,13 @@ function updateMainUI() {
         decryptTab.classList.replace('tab-active', 'tab-inactive');
         actionButton.textContent = 'Encrypt';
         fileInput.removeAttribute('accept');
+        fileInputAdd.removeAttribute('accept');
     } else {
         decryptTab.classList.replace('tab-inactive', 'tab-active');
         encryptTab.classList.replace('tab-active', 'tab-inactive');
         actionButton.textContent = 'Decrypt';
         fileInput.setAttribute('accept', '.dat');
+        fileInputAdd.setAttribute('accept', '.dat');
     }
     if (selectedFiles) {
         resetFileInput().catch(() => {
