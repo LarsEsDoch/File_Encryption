@@ -1,3 +1,18 @@
+import * as main from "./main.js";
+import * as ui from "./ui.js";
+import * as state from "./state.js";
+
+const encryptTab = document.getElementById('encrypt-tab');
+const decryptTab = document.getElementById('decrypt-tab');
+const actionButton = document.getElementById('action-button');
+const secretKeyInput = document.getElementById('password');
+const fileInput = document.getElementById('file-input');
+const fileInputAdd = document.getElementById('file-input-add');
+const dropPromptText = document.getElementById('drop-prompt-text');
+const textChoose = document.getElementById('text-choose');
+const fileModeBtn = document.getElementById('file-mode-btn');
+const folderModeBtn = document.getElementById('folder-mode-btn');
+
 export function showNotification(message, type = 'info') {
     const container = document.getElementById('notification-container');
     if (!container) return;
@@ -75,7 +90,7 @@ export async function updateFileList(files) {
     });
 }
 
-export function displaySelectedFiles(files, isFileMode, folderName) {
+export function displaySelectedFiles(files) {
     const uploadPrompt = document.getElementById('upload-prompt');
     const fileDisplay = document.getElementById('file-display');
     const fileList = document.getElementById('fileList');
@@ -91,7 +106,7 @@ export function displaySelectedFiles(files, isFileMode, folderName) {
         fileList.removeChild(fileList.firstChild);
     }
 
-    if (isFileMode) {
+    if (state.isFileMode) {
         Array.from(files).forEach(file => {
             const fileItem = document.createElement('div');
             fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
@@ -110,12 +125,12 @@ export function displaySelectedFiles(files, isFileMode, folderName) {
                 <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span class="file-name">${folderName}</span>
-                <button class="remove-button" data-filename="${folderName}" data-filepath="${folderName}">x</button>`;
+                <span class="file-name">${state.folderName}</span>
+                <button class="remove-button" data-filename="${state.folderName}" data-filepath="${state.folderName}">x</button>`;
         fileList.appendChild(fileItem);
     }
 
-    if (isFileMode) {
+    if (state.isFileMode) {
         fileIcon.classList.remove('hidden');
         folderIcon.classList.add('hidden');
     } else {
@@ -126,21 +141,44 @@ export function displaySelectedFiles(files, isFileMode, folderName) {
     fileNameDisplay.textContent = `${files.length} file${files.length > 1 ? 's' : ''} selected`;
 }
 
-export async function startDownload(response, downloadFilename) {
-    if (!response.ok) {
-        throw new Error(response.statusText);
+export function updateMainUI() {
+    if (state.isEncryptMode) {
+        encryptTab.classList.replace('tab-inactive', 'tab-active');
+        decryptTab.classList.replace('tab-active', 'tab-inactive');
+        actionButton.textContent = 'Encrypt';
+        fileInput.removeAttribute('accept');
+        fileInputAdd.removeAttribute('accept');
+    } else {
+        decryptTab.classList.replace('tab-inactive', 'tab-active');
+        encryptTab.classList.replace('tab-active', 'tab-inactive');
+        actionButton.textContent = 'Decrypt';
+        fileInput.setAttribute('accept', '.dat');
+        fileInputAdd.setAttribute('accept', '.dat');
     }
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+    if (state.selectedFiles) {
+        main.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
+    }
+    secretKeyInput.value = '';
+}
 
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = downloadFilename;
-
-    document.body.appendChild(a);
-    a.click();
-
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+export function updateUploadUI() {
+    if (state.isFileMode) {
+        fileModeBtn.classList.replace('mode-btn-inactive', 'mode-btn-active');
+        folderModeBtn.classList.replace('mode-btn-active', 'mode-btn-inactive');
+        fileInput.removeAttribute('webkitdirectory');
+        fileInput.removeAttribute('directory');
+        dropPromptText.textContent = 'Drag & drop a file here';
+        textChoose.textContent = 'Choose File';
+    } else {
+        folderModeBtn.classList.replace('mode-btn-inactive', 'mode-btn-active');
+        fileModeBtn.classList.replace('mode-btn-active', 'mode-btn-inactive');
+        fileInput.setAttribute('webkitdirectory', '');
+        fileInput.setAttribute('directory', '');
+        fileInput.setAttribute('multiple', '');
+        dropPromptText.textContent = 'Drag & drop a folder here';
+        textChoose.textContent = 'Choose Folder';
+    }
+    if (state.selectedFiles) {
+        main.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
+    }
 }
