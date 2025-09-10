@@ -4,6 +4,7 @@ import * as fileHandler from "./fileHandler.js";
 import * as api from "./api.js";
 import * as main from "./main.js";
 import * as utils from "./utils.js";
+import {sessionID} from "./main.js";
 
 
 export function registerEventListeners() {
@@ -147,7 +148,7 @@ export function registerEventListeners() {
                     return;
                 }
             }
-            const downloadFilename = (!state.isFileMode && state.folderName) ? `${state.folderName}.zip` : `${utils.getFormattedTimestamp()}.zip`;
+            const downloadFilename = `${utils.getFormattedTimestamp()}.zip`;
             await fileHandler.startDownload(response, downloadFilename);
         } catch (error) {
             ui.showNotification(`Error downloading folder: ${error.message}`, 'error');
@@ -196,19 +197,52 @@ export function registerEventListeners() {
             e.stopPropagation();
             if (state.isOperating) return ui.showNotification('An operation is in progress. Please wait!', 'warning');
 
+            const formData = new FormData();
+            formData.append("sessionID", main.sessionID);
+
             if (!state.isFileMode) {
-                fileHandler.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
-                ui.showNotification(`Folder ${state.folderName} removed successfully.`, 'info');
+                const folderName = e.target.getAttribute('data-foldername');
+                formData.append("folderName", folderName);
+
+                try {
+                    const result = await api.removeFolder(formData);
+                    if (result.error) {
+                        ui.showNotification(`Error removing folder: ${folderName}!`, 'error');
+                    } else {
+                        ui.showNotification(`Folder ${folderName} removed successfully.`, 'info');
+                        e.target.closest('div').remove();
+
+                        if(state.selectedFiles) {
+                            const remainingFolders = Array.from(state.folderNames).filter(name => name !== folderName);
+                            const remainingFiles = Array.from(state.selectedFiles).filter(file => {
+                                const topLevelFolder = file.webkitRelativePath.split('/')[0];
+                                return topLevelFolder !== folderName;
+                            });
+                            if (remainingFolders.length > 0) {
+                                const dt = new DataTransfer();
+                                remainingFiles.forEach(file => dt.items.add(file));
+
+                                state.setFolderNames(remainingFolders);
+                                state.setSelectedFiles(dt.files);
+                                fileNameDisplay.textContent = `${remainingFiles.length} file${remainingFiles.length > 1 ? 's' : ''} selected`;
+                            } else {
+                                await fileHandler.resetFileInput();
+                            }
+                        }
+                    }
+                } catch (error) {
+                    ui.showNotification(`Error removing folder: ${error.message}`, 'error');
+                }
                 return;
             }
 
             const fileName = e.target.getAttribute('data-filename');
             const filePath = e.target.getAttribute('data-filepath');
 
-            const formData = new FormData();
+
             formData.append("filePath", filePath || ".");
             formData.append("fileName", fileName);
-            formData.append("sessionID", main.sessionID);
+
 
             try {
                 const result = await api.removeFile(formData);

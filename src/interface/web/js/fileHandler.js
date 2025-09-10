@@ -89,8 +89,13 @@ export async function handleFiles(files, mode) {
     state.setSelectedFiles((mode === 'add') ? fileHandler.mergeFileLists(state.selectedFiles, files) : files);
 
     if (!state.isFileMode) {
-        state.setFolderName(state.selectedFiles[0].webkitRelativePath.split('/')[0]);
+        const folder = files[0].webkitRelativePath.split('/')[0];
+
+        if (state.folderNames) {
             state.setFolderNames([...state.folderNames, folder]);
+        } else {
+            state.setFolderNames([folder]);
+        }
     }
 
     ui.displaySelectedFiles(state.selectedFiles);
