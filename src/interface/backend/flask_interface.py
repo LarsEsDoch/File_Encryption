@@ -67,6 +67,33 @@ def upload_file():
     else:
         return {'message': f"{total_saved_files} files uploaded successfully!"}
 
+@app.route('/remove-folder', methods=['POST'])
+def remove_folder():
+    folder_name = request.form.get('folderName')
+    session_id = request.form.get('sessionID')
+
+    if not folder_name or session_id is None:
+        return {'error': 'Missing folder name or session ID'}, 400
+
+    with session_lock:
+        if session_id in active_sessions:
+            return {'error': 'Session is busy with another operation'}, 400
+        active_sessions.add(session_id)
+
+    if '..' in folder_name:
+        return {'error': 'Invalid folder name'}, 400
+
+    try:
+        shutil.rmtree(os.path.join('files/web/uploads/' + session_id) +"/" + folder_name)
+    except Exception as e:
+        print(e)
+        return {'error': f'Error deleting folder {folder_name}: {str(e)}'}, 500
+    finally:
+        with session_lock:
+            if session_id in active_sessions:
+                active_sessions.remove(session_id)
+
+    return {'message': 'Folder deleted successfully!'}
 
 @app.route('/remove-file', methods=['POST'])
 def remove_file():
