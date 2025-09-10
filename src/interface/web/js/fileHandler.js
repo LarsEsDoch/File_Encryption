@@ -7,6 +7,7 @@ import * as fileHandler from "./fileHandler.js";
 const fileInput = document.getElementById('file-input');
 const uploadPrompt = document.getElementById('upload-prompt');
 const fileDisplay = document.getElementById('file-display');
+const addFilesBtn = document.getElementById('add-files-btn');
 
 export function mergeFileLists(listA, listB) {
     const dt = new DataTransfer();
@@ -132,6 +133,8 @@ export async function resetFileInput() {
 
     state.setSelectedFiles(null);
     fileInput.value = '';
+
+    addFilesBtn.classList.add('hidden');
     uploadPrompt.classList.remove('hidden');
     fileDisplay.classList.add('hidden');
     fileDisplay.classList.remove('flex');

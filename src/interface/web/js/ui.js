@@ -97,7 +97,9 @@ export function displaySelectedFiles(files) {
     const fileIcon = document.getElementById('file-icon');
     const folderIcon = document.getElementById('folder-icon');
     const fileNameDisplay = document.getElementById('file-name');
+    const addFilesBtn = document.getElementById('add-files-btn');
 
+    addFilesBtn.classList.remove('hidden');
     uploadPrompt.classList.add('hidden');
     fileDisplay.classList.remove('hidden');
     fileDisplay.classList.add('flex');
@@ -115,7 +117,7 @@ export function displaySelectedFiles(files) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span class="file-name">${file.name}</span>
-                <button class="remove-button" data-filename="${file.name}" data-filepath="${file.webkitRelativePath || file.name}">x</button>`;
+                <button class="remove-button" data-filename="${file.name}" data-filepath="${file.webkitRelativePath}">x</button>`;
             fileList.appendChild(fileItem);
         });
     } else {
@@ -167,6 +169,8 @@ export function updateUploadUI() {
         folderModeBtn.classList.replace('mode-btn-active', 'mode-btn-inactive');
         fileInput.removeAttribute('webkitdirectory');
         fileInput.removeAttribute('directory');
+        fileInputAdd.removeAttribute('webkitdirectory');
+        fileInputAdd.removeAttribute('directory');
         dropPromptText.textContent = 'Drag & drop a file here';
         textChoose.textContent = 'Choose File';
     } else {
@@ -175,10 +179,13 @@ export function updateUploadUI() {
         fileInput.setAttribute('webkitdirectory', '');
         fileInput.setAttribute('directory', '');
         fileInput.setAttribute('multiple', '');
+        fileInputAdd.setAttribute('webkitdirectory', '');
+        fileInputAdd.setAttribute('directory', '');
+        fileInputAdd.setAttribute('multiple', '');
         dropPromptText.textContent = 'Drag & drop a folder here';
         textChoose.textContent = 'Choose Folder';
     }
     if (state.selectedFiles) {
-        main.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
+        fileHandler.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
     }
 }
