@@ -14,6 +14,14 @@ export async function loadFiles(formData) {
     return await response.json();
 }
 
+export async function removeFolder(formData) {
+    const response = await fetch('/remove-folder', {
+        method: 'POST',
+        body: formData
+    });
+    return await response.json();
+}
+
 export async function removeFile(formData) {
     const response = await fetch('/remove-file', {
         method: 'POST',

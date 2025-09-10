@@ -86,7 +86,6 @@ def remove_folder():
     try:
         shutil.rmtree(os.path.join('files/web/uploads/' + session_id) +"/" + folder_name)
     except Exception as e:
-        print(e)
         return {'error': f'Error deleting folder {folder_name}: {str(e)}'}, 500
     finally:
         with session_lock:
