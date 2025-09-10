@@ -3,6 +3,7 @@ import * as state from "./state.js";
 import * as ui from "./ui.js";
 import * as main from "./main.js";
 import * as fileHandler from "./fileHandler.js";
+import {selectedFiles} from "./state.js";
 
 const fileInput = document.getElementById('file-input');
 const uploadPrompt = document.getElementById('upload-prompt');
@@ -89,9 +90,10 @@ export async function handleFiles(files, mode) {
 
     if (!state.isFileMode) {
         state.setFolderName(state.selectedFiles[0].webkitRelativePath.split('/')[0]);
+            state.setFolderNames([...state.folderNames, folder]);
     }
 
-    ui.displaySelectedFiles(files);
+    ui.displaySelectedFiles(state.selectedFiles);
 
     state.setOperating("uploading");
     try {

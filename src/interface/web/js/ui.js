@@ -1,6 +1,7 @@
 import * as main from "./main.js";
 import * as ui from "./ui.js";
 import * as state from "./state.js";
+import * as fileHandler from "./fileHandler.js";
 
 const encryptTab = document.getElementById('encrypt-tab');
 const decryptTab = document.getElementById('decrypt-tab');
@@ -121,15 +122,17 @@ export function displaySelectedFiles(files) {
             fileList.appendChild(fileItem);
         });
     } else {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
-        fileItem.innerHTML = `
+        Array.from(state.folderNames).forEach(folderName => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'flex items-center space-x-2 text-sm text-gray-300 py-1';
+            fileItem.innerHTML = `
                 <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span class="file-name">${state.folderName}</span>
-                <button class="remove-button" data-filename="${state.folderName}" data-filepath="${state.folderName}">x</button>`;
-        fileList.appendChild(fileItem);
+                <span class="file-name">${folderName}</span>
+                <button class="remove-button" data-foldername="${folderName}"">x</button>`;
+            fileList.appendChild(fileItem);
+        });
     }
 
     if (state.isFileMode) {
@@ -158,7 +161,7 @@ export function updateMainUI() {
         fileInputAdd.setAttribute('accept', '.dat');
     }
     if (state.selectedFiles) {
-        main.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
+        fileHandler.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
     }
     secretKeyInput.value = '';
 }

@@ -2,7 +2,7 @@ export let isEncryptMode = true;
 export let isOperating = false;
 export let isFileMode = true;
 export let selectedFiles = null;
-export let folderName = "";
+export let folderNames = [];
 
 export function setEncryptMode(value) {
     isEncryptMode = value;
@@ -16,6 +16,6 @@ export function setFileMode(value) {
 export function setSelectedFiles(files) {
     selectedFiles = files;
 }
-export function setFolderName(name) {
-    folderName = name;
+export function setFolderNames(names) {
+    folderNames = names;
 }
