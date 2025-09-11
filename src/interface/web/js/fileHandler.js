@@ -139,6 +139,7 @@ export async function resetFileInput() {
     await api.removeSession(formData);
 
     state.setSelectedFiles(null);
+    state.setFolderNames([])
     fileInput.value = '';
 
     addFilesBtn.classList.add('hidden');
