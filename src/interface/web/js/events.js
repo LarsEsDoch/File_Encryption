@@ -3,8 +3,8 @@ import * as state from "./state.js";
 import * as fileHandler from "./fileHandler.js";
 import * as api from "./api.js";
 import * as main from "./main.js";
-import * as utils from "./utils.js";
 import {sessionID} from "./main.js";
+import * as utils from "./utils.js";
 
 
 export function registerEventListeners() {
@@ -139,7 +139,7 @@ export function registerEventListeners() {
         formData.append("sessionID", main.sessionID);
 
         try {
-            const response = await api.downloadFolder(formData);
+            const response = await api.downloadAll(formData);
             if (!response.ok) {
                 const result = await response.json();
                 if(result.error) {
@@ -273,18 +273,33 @@ export function registerEventListeners() {
         const downloadButton = e.target.closest('.download-button');
         if (downloadButton) {
             e.stopPropagation();
-            const filePath = downloadButton.getAttribute('data-filepath');
-            const formData = new FormData();
-            formData.append("filePath", filePath);
-            formData.append("sessionID", main.sessionID);
+            if (downloadButton.hasAttribute('data-filepath')) {
+                const filePath = downloadButton.getAttribute('data-filepath');
+                const formData = new FormData();
+                formData.append("filePath", filePath);
+                formData.append("sessionID", main.sessionID);
 
-            try {
-                const response = await api.downloadFile(formData);
-                const downloadFilename = filePath.split('/').pop();
-                await fileHandler.startDownload(response, downloadFilename);
-            } catch (error) {
-                ui.showNotification(`Error downloading file: ${error.message}`, 'error');
+                try {
+                    const response = await api.downloadFile(formData);
+                    const downloadFilename = filePath.split('/').pop();
+                    await fileHandler.startDownload(response, downloadFilename);
+                } catch (error) {
+                    ui.showNotification(`Error downloading file: ${error.message}`, 'error');
+                }
+            } else {
+                const folderName = downloadButton.getAttribute('data-foldername');
+                const formData = new FormData();
+                formData.append("folderName", folderName);
+                formData.append("sessionID", main.sessionID);
+
+                try {
+                    const response = await api.downloadFolder(formData);
+                    await fileHandler.startDownload(response, folderName);
+                } catch (error) {
+                    ui.showNotification(`Error downloading folder: ${error.message}`, 'error');
+                }
             }
+
         }
     });
 
