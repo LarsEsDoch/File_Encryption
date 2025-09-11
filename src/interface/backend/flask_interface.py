@@ -247,6 +247,9 @@ def download_file():
     if not session_id or not file_path:
         return {'error': 'Missing session ID or file path'}, 400
 
+    if '..' in file_path:
+        return {'error': 'Invalid file path'}, 400
+
     output_dir = os.path.join(BASE_DIR, 'files', 'web', 'output', session_id)
     full_file_path = os.path.join(output_dir, file_path)
 
@@ -271,6 +274,9 @@ def download_file():
 def download_folder():
     folder_name = request.form.get('folderName')
     session_id = request.form.get('sessionID')
+
+    if '..' in folder_name:
+        return {'error': 'Invalid folder name'}, 400
 
     if not session_id or not folder_name:
         return {'error': 'Missing session ID or folder name'}, 400
