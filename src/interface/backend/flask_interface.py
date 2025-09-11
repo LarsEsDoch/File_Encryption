@@ -269,6 +269,39 @@ def download_file():
 
 @app.route("/download-folder", methods=['POST'])
 def download_folder():
+    folder_name = request.form.get('folderName')
+    session_id = request.form.get('sessionID')
+
+    if not session_id or not folder_name:
+        return {'error': 'Missing session ID or folder name'}, 400
+
+    folder = os.path.join('files/web/output/' + session_id + "/" + folder_name)
+
+    zip_buffer = io.BytesIO()
+
+    if not os.path.exists(folder):
+        return {'error': f'Session not found'}, 404
+    try:
+        with zipfile.ZipFile(zip_buffer, "w") as zipf:
+            for root, dirs, dir_files in os.walk(folder):
+                for file in dir_files:
+                    file_path = os.path.join(root, file)
+                    archive_name = os.path.relpath(file_path, folder)
+                    zipf.write(file_path, archive_name)
+
+        zip_buffer.seek(0)
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name=f"{os.listdir(folder)}.zip",
+            mimetype="application/zip"
+        )
+    except Exception as e:
+        return {'error': f'Error downloading folder: {str(e)}'}, 500
+
+
+@app.route("/download-all", methods=['POST'])
+def download_all():
     session_id = request.form.get('sessionID')
 
     if not session_id:
@@ -297,7 +330,6 @@ def download_folder():
         )
     except Exception as e:
         return {'error': f'Error downloading folder: {str(e)}'}, 500
-
 
 
 @app.route("/remove-session", methods=['POST'])

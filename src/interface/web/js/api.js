@@ -44,6 +44,13 @@ export async function downloadFolder(formData) {
     });
 }
 
+export async function downloadAll(formData) {
+    return await fetch('/download-all', {
+        method: 'POST',
+        body: formData
+    });
+}
+
 export async function performCryptoOperation(endpoint, formData) {
     const response = await fetch(endpoint, {
         method: 'POST',
