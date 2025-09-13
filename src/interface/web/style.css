@@ -110,6 +110,35 @@ body {
     animation: progress-animation 5s linear forwards;
 }
 
+.strength-on {
+    margin-top: 10px;
+    height: 12px;
+    width: 100%;
+    border-radius: 6px;
+    background: #ddd;
+    overflow: hidden;
+    transition: width 1s;
+}
+.strength-off {
+    margin-top: 10px;
+    height: 12px;
+    width: 0;
+    border-radius: 6px;
+    background: #ddd;
+    overflow: hidden;
+    transition: width 0.5s;
+}
+.strength-bar {
+    height: 100%;
+    width: 0;
+    transition: width 0.3s;
+}
+.extrem_weak {background: white}
+.weak { background: red; }
+.medium { background: orange; }
+.strong { background: green; }
+.extreme {background: greenyellow}
+
 @keyframes progress-animation {
     from {
         width: 100%;
