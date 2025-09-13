@@ -122,6 +122,24 @@ export function registerEventListeners() {
         fileInputAdd.click();
     });
 
+    passwordInput.addEventListener("input", function() {
+        const pw = this.value.trim();
+        const result = utils.checkPasswordStrength(pw);
+        const bar = document.getElementById("strengthBar");
+        const strength = document.getElementById("strength")
+
+        if (pw !== "") {
+            strength.className = "strength-on"
+        } else {
+            strength.className = "strength-off"
+        }
+
+        bar.className = "strength-bar " + result.cssClass;
+        bar.style.width = result.percent + "%";
+        document.getElementById("verdict").textContent = result.verdict;
+        document.getElementById("verdict-time").textContent = result.preferredTimeReadable
+    });
+
     toggleVisibilityButton.addEventListener('click', () => {
         const isPassword = passwordInput.type === 'password';
         passwordInput.type = isPassword ? 'text' : 'password';
