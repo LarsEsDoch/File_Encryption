@@ -11,7 +11,7 @@ export function registerEventListeners() {
     const encryptTab = document.getElementById('encrypt-tab');
     const decryptTab = document.getElementById('decrypt-tab');
     const actionButton = document.getElementById('action-button');
-    const secretKeyInput = document.getElementById('password');
+    const passwordInput = document.getElementById('password');
     const toggleVisibilityButton = document.getElementById('toggle-key-visibility');
     const eyeIcon = document.getElementById('eye-icon');
     const eyeOffIcon = document.getElementById('eye-off-icon');
@@ -123,8 +123,8 @@ export function registerEventListeners() {
     });
 
     toggleVisibilityButton.addEventListener('click', () => {
-        const isPassword = secretKeyInput.type === 'password';
-        secretKeyInput.type = isPassword ? 'text' : 'password';
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
         eyeIcon.classList.toggle('hidden', isPassword);
         eyeOffIcon.classList.toggle('hidden', !isPassword);
     });
@@ -158,7 +158,8 @@ export function registerEventListeners() {
     actionButton.addEventListener('click', async () => {
         if (state.isOperating) return ui.showNotification(`An ${state.isOperating} operation is in progress. Please wait!`, 'warning');
         if (!state.selectedFiles) return ui.showNotification('No files selected!', 'info');
-        if (!secretKeyInput.value) return ui.showNotification('Please enter a password first!', 'info');
+        if (!passwordInput.value) return ui.showNotification('Please enter a password first!', 'info');
+        if (utils.checkPasswordStrength(passwordInput.value).status === 400) ui.showNotification(utils.checkPasswordStrength(passwordInput.value).feedback, 'warning')
 
         state.setOperating(state.isEncryptMode ? 'encrypting' : 'decrypting');
         actionButton.disabled = true;
@@ -166,7 +167,7 @@ export function registerEventListeners() {
 
         const endpoint = state.isEncryptMode ? '/encrypt-files' : '/decrypt-files';
         const formData = new FormData();
-        formData.append('password', secretKeyInput.value);
+        formData.append('password', passwordInput.value);
         formData.append("sessionID", main.sessionID);
 
         try {

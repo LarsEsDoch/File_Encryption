@@ -6,7 +6,7 @@ import * as fileHandler from "./fileHandler.js";
 const encryptTab = document.getElementById('encrypt-tab');
 const decryptTab = document.getElementById('decrypt-tab');
 const actionButton = document.getElementById('action-button');
-const secretKeyInput = document.getElementById('password');
+const passwordInput = document.getElementById('password');
 const fileInput = document.getElementById('file-input');
 const fileInputAdd = document.getElementById('file-input-add');
 const dropPromptText = document.getElementById('drop-prompt-text');
@@ -184,7 +184,7 @@ export function updateMainUI() {
     if (state.selectedFiles) {
         fileHandler.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
     }
-    secretKeyInput.value = '';
+    passwordInput.value = '';
 }
 
 export function updateUploadUI() {
