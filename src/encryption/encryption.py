@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -36,8 +37,11 @@ def encrypt_file(password: str, filename: str, encrypt_name: bool = False):
 
     os.makedirs("files/encrypted", exist_ok=True)
 
-    timestamp_name = utils.format_timestamp_from_path(input_path)
-    out_path = utils.get_unique_output_path("files/encrypted", timestamp_name, ".dat")
+    if encrypt_name:
+        timestamp_name = utils.format_timestamp_from_path(input_path)
+        out_path = utils.get_unique_output_path("files/encrypted", timestamp_name, ".dat")
+    else:
+        out_path = os.path.join("files", "encrypted", filename) + ".dat"
 
     with open(out_path, "wb") as f:
         f.write(salt + iv + ciphertext)
@@ -50,6 +54,7 @@ def encrypt_directory(password: str, mode: int, encrypt_name: bool = False, sess
         if not os.path.exists("files/input/"):
             print("'files/input/' not found.\n")
             return None
+        shutil.rmtree(os.path.join("files", "encrypted"))
         os.makedirs("files/encrypted", exist_ok=True)
         root_in = os.path.join("files", "input")
         root_out = os.path.join("files", "encrypted")
@@ -91,8 +96,11 @@ def encrypt_directory(password: str, mode: int, encrypt_name: bool = False, sess
                 encryptor = cipher.encryptor()
                 ciphertext = encryptor.update(padded) + encryptor.finalize()
 
-                timestamp_name = utils.format_timestamp_from_path(input_path)
-                out_path = utils.get_unique_output_path(output_dir, timestamp_name, ".dat")
+                if encrypt_name:
+                    timestamp_name = utils.format_timestamp_from_path(input_path)
+                    out_path = utils.get_unique_output_path(output_dir, timestamp_name, ".dat")
+                else:
+                    out_path = os.path.join(output_dir, item) + ".dat"
 
                 os.makedirs(output_dir, exist_ok=True)
                 with open(out_path, "wb") as f:

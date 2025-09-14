@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -7,7 +8,7 @@ from src.utils import utils
 from src.utils.utils import derive_key
 
 
-def decrypt_file(password: str, encrypted_filename: str, encrypt_name: bool = False):
+def decrypt_file(password: str, encrypted_filename: str):
     enc_path = os.path.join("files", "encrypted", f"{encrypted_filename}.dat")
     if not os.path.exists(enc_path):
         print(f"File '{encrypted_filename}.dat' not found.")
@@ -20,9 +21,7 @@ def decrypt_file(password: str, encrypted_filename: str, encrypt_name: bool = Fa
         print("Encrypted file is too short or corrupted.")
         return
 
-    salt = data[:16]
-    iv = data[16:32]
-    ciphertext = data[32:]
+    salt, iv, ciphertext = data[:16], data[16:32], data[32:]
     key = derive_key(password.encode(), salt)
 
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -33,45 +32,42 @@ def decrypt_file(password: str, encrypted_filename: str, encrypt_name: bool = Fa
     try:
         decrypted_payload = unpadder.update(padded_plain_data) + unpadder.finalize()
     except ValueError:
-        print("Decryption failed — wrong password or corrupted file.")
+        print("Decryption failed! Wrong password.")
         return
 
     name_from_payload, file_data = utils.extract_name_and_data_from_payload(decrypted_payload)
 
     if name_from_payload:
         original_name = name_from_payload
-    elif encrypt_name:
-        try:
-            name_part, file_data2 = decrypted_payload.split(b"\n", 1)
-            original_name = name_part.decode("utf-8", errors="replace")
-            file_data = file_data2
-        except Exception:
-            original_name = os.path.splitext(encrypted_filename)[0]
-            file_data = decrypted_payload
     else:
-        original_name = os.path.splitext(encrypted_filename)[0]
+        original_name = encrypted_filename
         file_data = decrypted_payload
 
-    os.makedirs(os.path.join("files", "decrypted"), exist_ok=True)
+    os.makedirs("files/decrypted", exist_ok=True)
 
     out_path = os.path.join("files", "decrypted", original_name)
-    counter = 1
     base, ext = os.path.splitext(out_path)
+    counter = 1
     while os.path.exists(out_path):
         out_path = f"{base}_{counter}{ext}"
         counter += 1
 
-    with open(out_path, "wb") as f:
-        f.write(file_data)
+    try:
+        with open(out_path, "wb") as f:
+            f.write(file_data)
+    except Exception:
+        print("Error writing decrypted file.")
+        return
 
     print(f"File decrypted and saved to '{out_path}'.\n")
 
 
-def decrypt_directory(password: str, mode: int, encrypt_name: bool = False, sessionID: str = None):
+def decrypt_directory(password: str, mode: int, sessionID: str = None):
     if mode == 0:
         if not os.path.exists("files/encrypted/"):
             print("'files/encrypted/' not found.\n")
             return None
+        shutil.rmtree("files/decrypted")
         os.makedirs("files/decrypted", exist_ok=True)
         root_in = os.path.join("files", "encrypted")
         root_out = os.path.join("files", "decrypted")
@@ -126,16 +122,9 @@ def decrypt_directory(password: str, mode: int, encrypt_name: bool = False, sess
                         continue
 
                     name_from_payload, file_data = utils.extract_name_and_data_from_payload(decrypted_payload)
+
                     if name_from_payload:
                         original_name = name_from_payload
-                    elif encrypt_name:
-                        try:
-                            name_part, file_data2 = decrypted_payload.split(b"\n", 1)
-                            original_name = name_part.decode("utf-8", errors="replace")
-                            file_data = file_data2
-                        except Exception:
-                            original_name = os.path.splitext(item)[0]
-                            file_data = decrypted_payload
                     else:
                         original_name = os.path.splitext(item)[0]
                         file_data = decrypted_payload
@@ -154,7 +143,7 @@ def decrypt_directory(password: str, mode: int, encrypt_name: bool = False, sess
 
                 except Exception as e:
                     if mode == 0:
-                        print(f"Error decrypting {item}: {str(e)}")
+                        print(f"Error decrypting {item}!")
                     elif mode == 1:
                         raise e
 
