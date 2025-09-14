@@ -79,3 +79,27 @@ def get_unique_output_path(output_dir: str, base_name: str, ext: str) -> str:
     return candidate
 
 
+def extract_name_and_data_from_payload(payload: bytes):
+    if len(payload) >= 2:
+        name_len = int.from_bytes(payload[:2], "big")
+        if 0 < name_len <= 4096 and len(payload) >= 2 + name_len:
+            name_bytes = payload[2:2 + name_len]
+            rest = payload[2 + name_len:]
+            try:
+                name = name_bytes.decode("utf-8")
+                if "\x00" not in name and not any(sep in name for sep in (os.sep, "/", "\\")):
+                    return name, rest
+            except Exception:
+                pass
+
+    head = payload[:512]
+    if b"\n" in head:
+        try:
+            name_part, rest = payload.split(b"\n", 1)
+            name = name_part.decode("utf-8")
+            if name and "\x00" not in name and not any(sep in name for sep in (os.sep, "/", "\\")):
+                return name, rest
+        except Exception:
+            pass
+
+    return None, payload
