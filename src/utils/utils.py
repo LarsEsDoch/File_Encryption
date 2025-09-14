@@ -4,6 +4,7 @@ import time
 
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
+from datetime import datetime
 
 
 def derive_key(password: bytes, salt: bytes) -> bytes:
@@ -59,3 +60,22 @@ def save_file_with_structure(file, upload_dir):
 
 def delete_file(file_path):
     os.remove(file_path)
+
+
+def format_timestamp_from_path(path: str) -> str:
+    try:
+        ts = os.path.getctime(path)
+    except Exception:
+        ts = datetime.now().timestamp()
+    return datetime.fromtimestamp(ts).strftime("%Y%m%d_%H%M%S")
+
+
+def get_unique_output_path(output_dir: str, base_name: str, ext: str) -> str:
+    candidate = os.path.join(output_dir, base_name + ext)
+    counter = 1
+    while os.path.exists(candidate):
+        candidate = os.path.join(output_dir, f"{base_name}_{counter}{ext}")
+        counter += 1
+    return candidate
+
+
