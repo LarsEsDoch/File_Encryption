@@ -40,18 +40,35 @@ export function showNotification(message, type = 'info') {
     container.appendChild(notification);
     requestAnimationFrame(() => notification.classList.add('show'));
 
-    const progressBar = notification.querySelector('.notification-progress');
+    window._notifHoverCount = window._notifHoverCount || 0;
 
-    const remove = () => {
-        clearTimeout(timer);
-        notification.classList.remove('show');
-        notification.addEventListener('transitionend', () => notification.remove(), { once: true });
-    };
+    notification._isHovering = false;
+
+    const progressBar = notification.querySelector('.notification-progress');
 
     const totalDuration = 5000;
     let remaining = totalDuration;
     let timer = null;
-    let startTime = 0;
+    let startTime = null;
+
+    const cleanupHoverOnRemove = () => {
+        if (notification._isHovering) {
+            notification._isHovering = false;
+            window._notifHoverCount = Math.max(0, window._notifHoverCount - 1);
+            if (window._notifHoverCount === 0) {
+                document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('resumeAll')));
+            }
+        }
+    };
+
+    const remove = () => {
+        clearTimeout(timer);
+        cleanupHoverOnRemove();
+        notification.classList.remove('show');
+        notification.addEventListener('transitionend', () => {
+            notification.remove();
+        }, { once: true });
+    };
 
     const startTimer = (time) => {
         startTime = Date.now();
@@ -66,36 +83,56 @@ export function showNotification(message, type = 'info') {
     };
 
     const pauseTimer = () => {
-        if (!startTime) return;
-        clearTimeout(timer);
-        const elapsed = Date.now() - startTime;
-        remaining = Math.max(0, remaining - elapsed);
+        if (startTime !== null) {
+            const elapsed = Date.now() - startTime;
+            remaining = Math.max(0, remaining - elapsed);
+            clearTimeout(timer);
+            startTime = null;
+        }
         const percentRemaining = (remaining / totalDuration) * 100;
         progressBar.style.transition = 'none';
         progressBar.style.width = `${percentRemaining}%`;
     };
 
     const resumeTimer = () => {
-        if (remaining > 0) startTimer(remaining);
+        if (remaining > 0 && startTime === null) {
+            startTimer(remaining);
+        }
     };
-
-    startTimer(remaining);
-
-    notification.querySelector('.close-notification-btn').addEventListener('click', () => {
-        clearTimeout(timer);
-        remove();
-    });
-
-    notification.addEventListener('mouseenter', () => {
-        document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('pauseAll')));
-    });
-    notification.addEventListener('mouseleave', () => {
-        document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('resumeAll')));
-    });
 
     notification.addEventListener('pauseAll', pauseTimer);
     notification.addEventListener('resumeAll', resumeTimer);
+
+    notification.addEventListener('mouseenter', () => {
+        if (!notification._isHovering) {
+            notification._isHovering = true;
+            window._notifHoverCount = (window._notifHoverCount || 0) + 1;
+            if (window._notifHoverCount === 1) {
+                document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('pauseAll')));
+            }
+        }
+    });
+
+    notification.addEventListener('mouseleave', () => {
+        if (notification._isHovering) {
+            notification._isHovering = false;
+            window._notifHoverCount = Math.max(0, (window._notifHoverCount || 1) - 1);
+            if (window._notifHoverCount === 0) {
+                document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('resumeAll')));
+            }
+        }
+    });
+
+    notification.querySelector('.close-notification-btn').addEventListener('click', remove);
+
+    if (window._notifHoverCount > 0) {
+        pauseTimer();
+    } else {
+        startTimer(remaining);
+    }
 }
+
+
 
 export async function updateFileList(files) {
     const list = document.getElementById("files-list");
