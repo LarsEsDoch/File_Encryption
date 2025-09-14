@@ -38,42 +38,45 @@ export function showNotification(message, type = 'info') {
     `;
 
     container.appendChild(notification);
-
-    requestAnimationFrame(() => {
-        notification.classList.add('show');
-    });
+    requestAnimationFrame(() => notification.classList.add('show'));
 
     const progressBar = notification.querySelector('.notification-progress');
 
     const remove = () => {
+        clearTimeout(timer);
         notification.classList.remove('show');
         notification.addEventListener('transitionend', () => notification.remove(), { once: true });
     };
 
-    let totalDuration = 5000;
-    let remainingWidth = "100%";
-    const computed = getComputedStyle(progressBar);
-    const startWidth = computed.width;
+    const totalDuration = 5000;
     let remaining = totalDuration;
     let timer = null;
-    let startTime = Date.now();
+    let startTime = 0;
 
-    const startProgress = (time) => {
+    const startTimer = (time) => {
+        startTime = Date.now();
+        clearTimeout(timer);
+        timer = setTimeout(remove, time);
+
+        progressBar.style.transition = 'none';
+        progressBar.style.width = `${(time / totalDuration) * 100}%`;
+        void progressBar.offsetWidth;
         progressBar.style.transition = `width ${time}ms linear`;
         progressBar.style.width = '0%';
     };
 
-    const resetProgress = () => {
+    const pauseTimer = () => {
+        if (!startTime) return;
+        clearTimeout(timer);
+        const elapsed = Date.now() - startTime;
+        remaining = Math.max(0, remaining - elapsed);
+        const percentRemaining = (remaining / totalDuration) * 100;
         progressBar.style.transition = 'none';
-        progressBar.style.width = remainingWidth;
-        void progressBar.offsetWidth;
+        progressBar.style.width = `${percentRemaining}%`;
     };
 
-    const startTimer = (time) => {
-        startTime = Date.now();
-        timer = setTimeout(remove, time);
-        resetProgress();
-        startProgress(time);
+    const resumeTimer = () => {
+        if (remaining > 0) startTimer(remaining);
     };
 
     startTimer(remaining);
@@ -84,22 +87,14 @@ export function showNotification(message, type = 'info') {
     });
 
     notification.addEventListener('mouseenter', () => {
-        clearTimeout(timer);
-        const elapsed = Date.now() - startTime;
-        remaining = Math.max(0, remaining - elapsed);
-
-        const computed = getComputedStyle(progressBar);
-        const currentWidth = computed.width;
-        progressBar.style.transition = 'none';
-        progressBar.style.width = currentWidth;
-        remainingWidth = `${startWidth/currentWidth}%`
+        document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('pauseAll')));
     });
-
     notification.addEventListener('mouseleave', () => {
-        if (remaining > 0) {
-            startTimer(remaining);
-        }
+        document.querySelectorAll('.notification').forEach(n => n.dispatchEvent(new Event('resumeAll')));
     });
+
+    notification.addEventListener('pauseAll', pauseTimer);
+    notification.addEventListener('resumeAll', resumeTimer);
 }
 
 export async function updateFileList(files) {
