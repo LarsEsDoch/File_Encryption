@@ -8,11 +8,19 @@ def encrypt():
     if mode == 'f':
         filename = input("Enter filename: ")
         password = input("Password: ")
-        encrypt_file(password, filename)
+        encrypt_name = input("Encrypt file name (y/n): ")
+        while encrypt_name != 'y' and encrypt_name != 'n':
+            print('Please enter "y" for yes or "n" for no')
+            encrypt_name = input()
+        encrypt_file(password, filename, encrypt_name == 'y')
     elif mode == 'd':
         print("Put all files to encrypt in the 'files/input/' directory.")
         password = input("Password: ")
-        encrypt_directory(password, 0)
+        encrypt_name = input("Encrypt file name (y/n): ")
+        while encrypt_name != 'y' and encrypt_name != 'n':
+            print('Please enter "y" for yes or "n" for no')
+            encrypt_name = input()
+        encrypt_directory(password, 0, encrypt_name == 'y')
     else:
         print("Invalid mode. Please try again.")
         return
