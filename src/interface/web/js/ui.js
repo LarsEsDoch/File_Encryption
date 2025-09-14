@@ -22,13 +22,9 @@ export function showNotification(message, type = 'info') {
     notification.className = 'notification';
 
     let title = 'Info';
-    if (type === 'success') {
-        title = 'Success';
-    } else if (type === 'error') {
-        title = 'Error';
-    } else if (type === 'warning') {
-        title = 'Warning';
-    }
+    if (type === 'success') title = 'Success';
+    else if (type === 'error') title = 'Error';
+    else if (type === 'warning') title = 'Warning';
 
     notification.innerHTML = `
         <div class="flex justify-between items-start">
@@ -47,16 +43,62 @@ export function showNotification(message, type = 'info') {
         notification.classList.add('show');
     });
 
+    const progressBar = notification.querySelector('.notification-progress');
+
     const remove = () => {
         notification.classList.remove('show');
         notification.addEventListener('transitionend', () => notification.remove(), { once: true });
     };
 
-    const timer = setTimeout(remove, 5000);
+    let totalDuration = 5000;
+    let remainingWidth = "100%";
+    const computed = getComputedStyle(progressBar);
+    const startWidth = computed.width;
+    let remaining = totalDuration;
+    let timer = null;
+    let startTime = Date.now();
+
+    const startProgress = (time) => {
+        progressBar.style.transition = `width ${time}ms linear`;
+        progressBar.style.width = '0%';
+    };
+
+    const resetProgress = () => {
+        progressBar.style.transition = 'none';
+        progressBar.style.width = remainingWidth;
+        void progressBar.offsetWidth;
+    };
+
+    const startTimer = (time) => {
+        startTime = Date.now();
+        timer = setTimeout(remove, time);
+        resetProgress();
+        startProgress(time);
+    };
+
+    startTimer(remaining);
 
     notification.querySelector('.close-notification-btn').addEventListener('click', () => {
         clearTimeout(timer);
         remove();
+    });
+
+    notification.addEventListener('mouseenter', () => {
+        clearTimeout(timer);
+        const elapsed = Date.now() - startTime;
+        remaining = Math.max(0, remaining - elapsed);
+
+        const computed = getComputedStyle(progressBar);
+        const currentWidth = computed.width;
+        progressBar.style.transition = 'none';
+        progressBar.style.width = currentWidth;
+        remainingWidth = `${startWidth/currentWidth}%`
+    });
+
+    notification.addEventListener('mouseleave', () => {
+        if (remaining > 0) {
+            startTimer(remaining);
+        }
     });
 }
 

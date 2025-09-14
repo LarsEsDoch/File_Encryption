@@ -84,9 +84,9 @@ body {
 .notification {
     position: relative;
     overflow: hidden;
-    border-radius: 0.75rem; /* rounded-xl */
+    border-radius: 0.75rem;
     padding: 1rem;
-    background: rgba(31, 41, 55, 0.7); /* bg-gray-800 with opacity */
+    background: rgba(31, 41, 55, 0.7);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -107,7 +107,7 @@ body {
     height: 3px;
     width: 100%;
     background-color: #3b82f6;
-    animation: progress-animation 5s linear forwards;
+    transition: none;
 }
 
 .strength-on {
