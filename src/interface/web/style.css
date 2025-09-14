@@ -133,11 +133,12 @@ body {
     width: 0;
     transition: width 0.3s;
 }
-.extrem_weak {background: white}
-.weak { background: red; }
-.medium { background: orange; }
+.empty {background: rgb(255,255,255,0)}
+.very-weak {background: red}
+.weak { background: yellow; }
+.good {background: limegreen}
 .strong { background: green; }
-.extreme {background: greenyellow}
+.extremely-strong {background: #3b82f6}
 
 @keyframes progress-animation {
     from {

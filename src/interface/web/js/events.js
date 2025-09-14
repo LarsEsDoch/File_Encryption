@@ -5,6 +5,7 @@ import * as api from "./api.js";
 import * as main from "./main.js";
 import {sessionID} from "./main.js";
 import * as utils from "./utils.js";
+import {evaluatePassword} from "./utils.js";
 
 
 export function registerEventListeners() {
@@ -123,21 +124,29 @@ export function registerEventListeners() {
     });
 
     passwordInput.addEventListener("input", function() {
+        const bar = document.getElementById('strengthBar');
+        const strength = document.getElementById('strength');
+        const verdictEl = document.getElementById('verdict');
+        const verdictTimeEl = document.getElementById('verdict-time');
+        const messageEl = document.getElementById('strength-message');
+
         const pw = this.value.trim();
-        const result = utils.checkPasswordStrength(pw);
-        const bar = document.getElementById("strengthBar");
-        const strength = document.getElementById("strength")
+        const result = utils.evaluatePassword(pw);
 
         if (pw !== "") {
-            strength.className = "strength-on"
+            strength.className = "strength-on";
         } else {
-            strength.className = "strength-off"
+            strength.className = "strength-off";
         }
 
-        bar.className = "strength-bar " + result.cssClass;
-        bar.style.width = result.percent + "%";
-        document.getElementById("verdict").textContent = result.verdict;
-        document.getElementById("verdict-time").textContent = result.preferredTimeReadable
+        if (bar) {
+            bar.className = "strength-bar " + (result.cssClass || '');
+            bar.style.width = (typeof result.percent === 'number' ? result.percent : 0) + "%";
+        }
+
+        if (verdictEl) verdictEl.textContent = result.verdict || '';
+        if (verdictTimeEl) verdictTimeEl.textContent = result.crack_times_display || '';
+        if (messageEl) messageEl.textContent = result.message || '';
     });
 
     toggleVisibilityButton.addEventListener('click', () => {
@@ -177,7 +186,7 @@ export function registerEventListeners() {
         if (state.isOperating) return ui.showNotification(`An ${state.isOperating} operation is in progress. Please wait!`, 'warning');
         if (!state.selectedFiles) return ui.showNotification('No files selected!', 'info');
         if (!passwordInput.value) return ui.showNotification('Please enter a password first!', 'info');
-        if (utils.checkPasswordStrength(passwordInput.value).status === 400) ui.showNotification(utils.checkPasswordStrength(passwordInput.value).feedback, 'warning')
+        if (utils.evaluatePassword(passwordInput.value).status === 400) utils.evaluatePassword(passwordInput.value).message.suggestions.forEach(message => ui.showNotification(message, 'warning'));
 
         state.setOperating(state.isEncryptMode ? 'encrypting' : 'decrypting');
         actionButton.disabled = true;
