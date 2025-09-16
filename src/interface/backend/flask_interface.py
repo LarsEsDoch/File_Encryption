@@ -129,19 +129,25 @@ def remove_file():
 def encrypt_files():
     password = request.form.get('password')
     session_id = request.form.get('sessionID')
+    encrypt_names = request.form.get('encryptNames')
 
-    if not session_id or not password:
-        return {'error': 'Missing session ID or password'}, 400
+    if not session_id or not password or not encrypt_names:
+        return {'error': 'Missing session ID, encrypt names or password'}, 400
 
     with session_lock:
         if session_id in active_sessions:
             return {'error': 'Session is busy with another operation'}, 400
         active_sessions.add(session_id)
 
+    if encrypt_names == "true":
+        encrypt_names = True
+    else:
+        encrypt_names = False
+
     clear_output_directory(session_id)
 
     try:
-        encrypted_files = encrypt_directory(password, 1, session_id)
+        encrypted_files = encrypt_directory(password, 1, encrypt_names, session_id)
     except Exception as e:
         with session_lock:
             active_sessions.remove(session_id)
