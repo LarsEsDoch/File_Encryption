@@ -141,8 +141,10 @@ def encrypt_files():
 
     if encrypt_names == "true":
         encrypt_names = True
-    else:
+    elif encrypt_names == "false":
         encrypt_names = False
+    else:
+        return {'error': 'Invalid encryptNames state'}, 400
 
     clear_output_directory(session_id)
 
