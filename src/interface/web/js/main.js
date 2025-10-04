@@ -6,6 +6,7 @@ function init() {
     events.registerEventListeners();
     ui.updateMainUI();
     ui.updateUploadUI();
+    websocket.socket_io()
 }
 
 
