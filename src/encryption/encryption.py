@@ -49,23 +49,33 @@ def encrypt_file(password: str, filename: str, encrypt_name: bool = False):
     print(f"File encrypted and saved to '{out_path}'.\n")
 
 
-def encrypt_directory(password: str, mode: int, encrypt_name: bool = False, sessionID: str = None):
+def encrypt_directory(password: str, mode: int, encrypt_name: bool = False, sessionID: str = None, progress_callback=None):
     if mode == 0:
         if not os.path.exists("files/input/"):
             print("'files/input/' not found.\n")
             return None
-        shutil.rmtree(os.path.join("files", "encrypted"))
+        shutil.rmtree(os.path.join("files", "encrypted"), ignore_errors=True)
         os.makedirs("files/encrypted", exist_ok=True)
         root_in = os.path.join("files", "input")
         root_out = os.path.join("files", "encrypted")
     elif mode == 1:
-        if not os.path.exists(os.path.join("files", "web", "uploads", sessionID)):
+        upload_dir = os.path.join("files", "web", "uploads", sessionID)
+        if not os.path.exists(upload_dir):
             return None
-        os.makedirs(os.path.join("files", "web", "output", sessionID), exist_ok=True)
-        root_in = os.path.join("files", "web", "uploads", sessionID)
-        root_out = os.path.join("files", "web", "output", sessionID)
+        output_dir = os.path.join("files", "web", "output", sessionID)
+        os.makedirs(output_dir, exist_ok=True)
+        root_in = upload_dir
+        root_out = output_dir
     else:
         return None
+
+    total_files = sum(
+        len([f for f in files if os.path.isfile(os.path.join(root, f))])
+        for root, dirs, files in os.walk(root_in)
+    )
+    if total_files == 0:
+        print("No files found to encrypt.\n")
+        return 0
 
     encrypted_files = 0
 
@@ -108,6 +118,10 @@ def encrypt_directory(password: str, mode: int, encrypt_name: bool = False, sess
 
                 encrypted_files += 1
 
+                if progress_callback:
+                    percent = int((encrypted_files / total_files) * 100)
+                    progress_callback(percent, f"Encrypted {item}", encrypted_files, total_files)
+
             elif os.path.isdir(input_path):
                 sub_out = os.path.join(output_dir, item)
                 os.makedirs(sub_out, exist_ok=True)
@@ -115,14 +129,14 @@ def encrypt_directory(password: str, mode: int, encrypt_name: bool = False, sess
 
     encrypt_in_directory(root_in, root_out)
 
-    if encrypted_files == 0:
-        print("No files encrypted.\n")
-    elif encrypted_files == 1:
-        print(f"{encrypted_files} file encrypted and saved to '{root_out}'.\n")
-    else:
-        print(f"{encrypted_files} files encrypted and saved to '{root_out}'.\n")
-
-    if mode == 1:
-        return encrypted_files
+    if mode == 0:
+        if encrypted_files == 0:
+            print("No files encrypted.\n")
+        elif encrypted_files == 1:
+            print(f"{encrypted_files} file encrypted and saved to '{root_out}'.\n")
+        else:
+            print(f"{encrypted_files} files encrypted and saved to '{root_out}'.\n")
+    elif mode == 1:
+        return encrypted_files, total_files
 
     return None
