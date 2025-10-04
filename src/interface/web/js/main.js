@@ -1,9 +1,6 @@
 import * as ui from './ui.js';
 import * as events from './events.js';
-
-
-export const sessionID = crypto.randomUUID();
-
+import * as websocket from './websocket.js'
 
 function init() {
     events.registerEventListeners();

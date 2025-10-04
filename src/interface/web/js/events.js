@@ -2,8 +2,6 @@ import * as ui from "./ui.js";
 import * as state from "./state.js";
 import * as fileHandler from "./fileHandler.js";
 import * as api from "./api.js";
-import * as main from "./main.js";
-import {sessionID} from "./main.js";
 import * as utils from "./utils.js";
 
 
@@ -135,8 +133,12 @@ export function registerEventListeners() {
 
         if (pw !== "") {
             strength.className = "strength-on";
+            verdictEl.classList.remove("hidden");
+            verdictTimeEl.classList.remove("hidden");
         } else {
             strength.className = "strength-off";
+            verdictEl.classList.add("hidden");
+            verdictTimeEl.classList.add("hidden");
         }
 
         if (bar) {
@@ -162,11 +164,8 @@ export function registerEventListeners() {
             return ui.showNotification('No files to download!', 'info');
         }
 
-        const formData = new FormData();
-        formData.append("sessionID", main.sessionID);
-
         try {
-            const response = await api.downloadAll(formData);
+            const response = await api.downloadAll();
             if (!response.ok) {
                 const result = await response.json();
                 if(result.error) {
@@ -196,7 +195,6 @@ export function registerEventListeners() {
         const encryptNames = checkbox.checked ? 'true' : 'false'
         const formData = new FormData();
         formData.append('password', passwordInput.value);
-        formData.append("sessionID", main.sessionID);
         formData.append("encryptNames", encryptNames)
 
         try {
@@ -228,7 +226,6 @@ export function registerEventListeners() {
             if (state.isOperating) return ui.showNotification('An operation is in progress. Please wait!', 'warning');
 
             const formData = new FormData();
-            formData.append("sessionID", main.sessionID);
 
             if (!state.isFileMode) {
                 const folderName = e.target.getAttribute('data-foldername');
@@ -307,7 +304,6 @@ export function registerEventListeners() {
                 const filePath = downloadButton.getAttribute('data-filepath');
                 const formData = new FormData();
                 formData.append("filePath", filePath);
-                formData.append("sessionID", main.sessionID);
 
                 try {
                     const response = await api.downloadFile(formData);
@@ -320,7 +316,6 @@ export function registerEventListeners() {
                 const folderName = downloadButton.getAttribute('data-foldername');
                 const formData = new FormData();
                 formData.append("folderName", folderName);
-                formData.append("sessionID", main.sessionID);
 
                 try {
                     const response = await api.downloadFolder(formData);
@@ -334,9 +329,7 @@ export function registerEventListeners() {
     });
 
     window.addEventListener('beforeunload', async function () {
-        const formData = new FormData();
-        formData.append("sessionID", main.sessionID);
-        await api.removeSession(formData);
+        await api.removeSession();
     });
 }
 

@@ -1,4 +1,3 @@
-import * as main from "./main.js";
 import * as ui from "./ui.js";
 import * as state from "./state.js";
 import * as fileHandler from "./fileHandler.js";

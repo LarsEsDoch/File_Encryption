@@ -1,22 +1,26 @@
+const DEFAULT_FETCH_OPTIONS = {
+    method: 'POST',
+    credentials: 'same-origin',
+};
+
 export async function uploadFiles(formData) {
     const response = await fetch('/upload', {
-        method: 'POST',
+        ...DEFAULT_FETCH_OPTIONS,
         body: formData
     });
     return await response.json();
 }
 
-export async function loadFiles(formData) {
+export async function loadFiles() {
     const response = await fetch('/files', {
-        method: 'POST',
-        body: formData
+        ...DEFAULT_FETCH_OPTIONS
     });
     return await response.json();
 }
 
 export async function removeFolder(formData) {
     const response = await fetch('/remove-folder', {
-        method: 'POST',
+        ...DEFAULT_FETCH_OPTIONS,
         body: formData
     });
     return await response.json();
@@ -24,7 +28,7 @@ export async function removeFolder(formData) {
 
 export async function removeFile(formData) {
     const response = await fetch('/remove-file', {
-        method: 'POST',
+        ...DEFAULT_FETCH_OPTIONS,
         body: formData
     });
     return await response.json();
@@ -32,37 +36,35 @@ export async function removeFile(formData) {
 
 export async function downloadFile(formData) {
     return await fetch('/download-file', {
-        method: 'POST',
+        ...DEFAULT_FETCH_OPTIONS,
         body: formData
     });
 }
 
 export async function downloadFolder(formData) {
     return await fetch('/download-folder', {
-        method: 'POST',
+        ...DEFAULT_FETCH_OPTIONS,
         body: formData
     });
 }
 
-export async function downloadAll(formData) {
+export async function downloadAll() {
     return await fetch('/download-all', {
-        method: 'POST',
-        body: formData
+        ...DEFAULT_FETCH_OPTIONS
     });
 }
 
 export async function performCryptoOperation(endpoint, formData) {
     const response = await fetch(endpoint, {
-        method: 'POST',
+        ...DEFAULT_FETCH_OPTIONS,
         body: formData
     });
     return await response.json();
 }
 
-export async function removeSession(formData) {
+export async function removeSession() {
     return await fetch('/remove-session', {
-        method: 'POST',
-        body: formData,
+        ...DEFAULT_FETCH_OPTIONS,
         keepalive: true
     });
 }

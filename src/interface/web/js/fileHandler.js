@@ -1,9 +1,7 @@
 import * as api from "./api.js";
 import * as state from "./state.js";
 import * as ui from "./ui.js";
-import * as main from "./main.js";
 import * as fileHandler from "./fileHandler.js";
-import {selectedFiles} from "./state.js";
 
 const fileInput = document.getElementById('file-input');
 const uploadPrompt = document.getElementById('upload-prompt');
@@ -78,11 +76,8 @@ export async function startDownload(response, downloadFilename) {
 export async function handleFiles(files, mode) {
     if (files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("sessionID", main.sessionID);
-
     if (mode !== 'add') {
-        await api.removeSession(formData);
+        await api.removeSession();
     }
 
     await updateAndLoadFiles();
@@ -103,7 +98,6 @@ export async function handleFiles(files, mode) {
     state.setOperating("uploading");
     try {
         const uploadFormData = new FormData();
-        uploadFormData.append("sessionID", main.sessionID);
         Array.from(state.selectedFiles).forEach(file => {
             const filePath = file.webkitRelativePath || file.name;
             uploadFormData.append('files', file, filePath);
@@ -124,9 +118,7 @@ export async function handleFiles(files, mode) {
 
 export async function updateAndLoadFiles() {
     try {
-        const formData = new FormData();
-        formData.append("sessionID", main.sessionID);
-        const data = await api.loadFiles(formData);
+        const data = await api.loadFiles();
         await ui.updateFileList(data.files);
     } catch (error) {
         ui.showNotification(`Error loading file list: ${error.message}`, 'error');
@@ -134,9 +126,7 @@ export async function updateAndLoadFiles() {
 }
 
 export async function resetFileInput() {
-    const formData = new FormData();
-    formData.append("sessionID", main.sessionID);
-    await api.removeSession(formData);
+    await api.removeSession();
 
     state.setSelectedFiles(null);
     state.setFolderNames([])
