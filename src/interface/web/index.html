@@ -6,6 +6,7 @@
     <title>SecureCrypt - Encryption & Decryption Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/zxcvbn/dist/zxcvbn.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script type="module" src="web/js/main.js" defer></script>
     <link rel="icon" href="web/resources/icon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -102,14 +103,22 @@
                 </div>
                 <div class="strength-off" id="strength"><div id="strengthBar" class="strength-bar"></div></div>
                 <div class="justify-between flex">
-                    <p id="verdict" class="mt-3 h-[1em]"></p>
-                    <p id="verdict-time" class="mt-3 h-[1em]"></p>
+                    <p id="verdict" class="mt-3 h-[1em] hidden"></p>
+                    <p id="verdict-time" class="mt-3 h-[1em] hidden"></p>
                 </div>
             </div>
 
             <button id="action-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
                 Encrypt
             </button>
+
+            <div id="progress-container" class="w-full bg-gray-700 rounded-lg h-4 mt-4 hidden">
+                <div id="progress-bar" class="bg-blue-500 h-4 rounded-lg transition-all duration-300 ease-out" style="width: 0%"></div>
+            </div>
+            <div class="flex flex-col items-center space-y-0.5 mt-1">
+                <p id="progress-info" class="text-sm text-gray-400 text-center hidden"></p>
+                <p id="progress-info-files" class="text-sm text-gray-400 text-center hidden"></p>
+            </div>
 
             <div>
                 <label for="output-text" class="block text-sm font-medium text-gray-300 mb-2">Output</label>
