@@ -38,6 +38,18 @@ export function socket_io() {
         progressInfoFiles.textContent = `${p.info}`
     });
 
+    socket.on('upload_progress', (p) => {
+        progressBar.style.width = `${p.percent}%`;
+        progressInfo.textContent = `${p.percent}% ${p.current}/${p.total}`;
+        progressInfoFiles.textContent = `${p.info}`
+    });
+
+    socket.on('download_progress', (p) => {
+        progressBar.style.width = `${p.percent}%`;
+        progressInfo.textContent = `${p.percent}% ${p.current}/${p.total}`;
+        progressInfoFiles.textContent = `${p.info}`
+    });
+
     socket.on('operation_finished', (d) => {
         console.log('operation finished', d);
         progressBar.style.width = "100%";
@@ -47,6 +59,8 @@ export function socket_io() {
             progressContainer.classList.add("hidden");
             progressInfo.classList.add("hidden");
             progressInfoFiles.classList.add("hidden");
+            progressInfo.textContent = ""
+            progressInfoFiles.textContent = ""
             progressBar.style.width = "0%";
         }, 2000);
     });

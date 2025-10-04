@@ -115,19 +115,38 @@ def upload_file():
             return {'error': 'No files selected'}, 400
 
         saved_files = []
+        total_files = len([f for f in uploaded_files if f.filename != ''])
 
-        for uploaded_file in uploaded_files:
+        emit_progress(session_id, 'operation_started', {"operation": "upload"})
+
+        for file_index, uploaded_file in enumerate(uploaded_files):
             if uploaded_file.filename != '':
                 try:
+                    progress_percent = int((file_index / total_files) * 100)
+                    emit_progress(session_id, 'upload_progress', {
+                        "percent": progress_percent,
+                        "info": f"Uploading {uploaded_file.filename}",
+                        "current": file_index + 1,
+                        "total": total_files
+                    })
+
                     file_path = save_file_with_structure(uploaded_file, upload_dir)
                     saved_files.append({
                         'original_name': uploaded_file.filename,
                         'saved_path': file_path
                     })
                 except Exception as e:
+                    emit_progress(session_id, 'operation_error',
+                                  {"error": f'Error saving file {uploaded_file.filename}: {str(e)}'})
                     return {'error': f'Error saving file {uploaded_file.filename}: {str(e)}'}, 500
 
         total_saved_files = len(saved_files)
+
+        emit_progress(session_id, 'operation_finished', {
+            'operation': 'upload',
+            "processed": total_saved_files,
+            "total": total_files
+        })
 
         if total_saved_files == 0:
             return {'error': 'No files saved'}, 500
@@ -366,12 +385,38 @@ def download_folder(session_id):
     if not os.path.exists(folder):
         return {'error': f'Session not found'}, 404
     try:
+        total_files = 0
+        for root, dirs, dir_files in os.walk(folder):
+            total_files += len(dir_files)
+
+        if total_files > 0:
+            emit_progress(session_id, 'operation_started', {"operation": "download"})
+
+        processed_files = 0
         with zipfile.ZipFile(zip_buffer, "w") as zipf:
             for root, dirs, dir_files in os.walk(folder):
                 for file in dir_files:
                     file_path = os.path.join(root, file)
                     archive_name = os.path.relpath(file_path, folder)
+
+                    if total_files > 0:
+                        progress_percent = int((processed_files / total_files) * 100)
+                        emit_progress(session_id, 'download_progress', {
+                            "percent": progress_percent,
+                            "info": f"Adding {file} to archive",
+                            "current": processed_files + 1,
+                            "total": total_files
+                        })
+
                     zipf.write(file_path, archive_name)
+                    processed_files += 1
+
+        if total_files > 0:
+            emit_progress(session_id, 'operation_finished', {
+                'operation': 'download',
+                "processed": processed_files,
+                "total": total_files
+            })
 
         zip_buffer.seek(0)
         return send_file(
@@ -381,6 +426,7 @@ def download_folder(session_id):
             mimetype="application/zip"
         )
     except Exception as e:
+        emit_progress(session_id, 'operation_error', {"error": f'Error downloading folder: {str(e)}'})
         return {'error': f'Error downloading folder: {str(e)}'}, 500
 
 
@@ -393,12 +439,38 @@ def download_all(session_id):
     if not os.path.exists(folder):
         return {'error': f'Session not found'}, 404
     try:
+        total_files = 0
+        for root, dirs, dir_files in os.walk(folder):
+            total_files += len(dir_files)
+
+        if total_files > 0:
+            emit_progress(session_id, 'operation_started', {"operation": "download"})
+
+        processed_files = 0
         with zipfile.ZipFile(zip_buffer, "w") as zipf:
             for root, dirs, dir_files in os.walk(folder):
                 for file in dir_files:
                     file_path = os.path.join(root, file)
                     archive_name = os.path.relpath(file_path, folder)
+
+                    if total_files > 0:
+                        progress_percent = int((processed_files / total_files) * 100)
+                        emit_progress(session_id, 'download_progress', {
+                            "percent": progress_percent,
+                            "info": f"Adding {file} to archive",
+                            "current": processed_files + 1,
+                            "total": total_files
+                        })
+
                     zipf.write(file_path, archive_name)
+                    processed_files += 1
+
+        if total_files > 0:
+            emit_progress(session_id, 'operation_finished', {
+                'operation': 'download',
+                "processed": processed_files,
+                "total": total_files
+            })
 
         zip_buffer.seek(0)
         return send_file(
@@ -408,6 +480,7 @@ def download_all(session_id):
             mimetype="application/zip"
         )
     except Exception as e:
+        emit_progress(session_id, 'operation_error', {"error": f'Error downloading folder: {str(e)}'})
         return {'error': f'Error downloading folder: {str(e)}'}, 500
 
 
