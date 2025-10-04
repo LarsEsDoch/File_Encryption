@@ -84,7 +84,7 @@ def remove_folder():
         return {'error': 'Invalid folder name'}, 400
 
     try:
-        shutil.rmtree(os.path.join('files/web/uploads/' + session_id) +"/" + folder_name)
+        shutil.rmtree(os.path.join("files", "web", "uploads", session_id, folder_name))
     except Exception as e:
         return {'error': f'Error deleting folder {folder_name}: {str(e)}'}, 500
     finally:
@@ -111,10 +111,10 @@ def remove_file():
     if '..' in filepath or '..' in filename:
         return {'error': 'Invalid file path'}, 400
 
-    file = filepath + "/" + filename
+    file = os.path.join(filepath, filename)
 
     try:
-        delete_file(os.path.join('files/web/uploads/' + session_id) + file)
+        delete_file(os.path.join("files", "web", "uploads", session_id, file))
     except Exception as e:
         return {'error': f'Error deleting file {filename}: {str(e)}'}, 500
     finally:
@@ -234,14 +234,14 @@ def files():
         return {'error': 'Missing session ID'}, 400
 
     output_dir = os.path.join("files", "web", "output", session_id)
-    upload_dir = os.path.join('files/web/uploads/' + session_id)
+    upload_dir = os.path.join("files", "web", "uploads", session_id)
     if not upload_dir or not os.path.exists(output_dir):
         return jsonify({"files": []})
 
     file_list = []
     for root, dirs, output_files in os.walk(output_dir):
         for f in output_files:
-            rel_path = os.path.relpath(os.path.join(root, f), output_dir)
+            rel_path = os.path.relpath(os.path.join(root, f, output_dir))
             file_list.append(rel_path)
 
     return jsonify({"files": file_list})
@@ -289,7 +289,7 @@ def download_folder():
     if not session_id or not folder_name:
         return {'error': 'Missing session ID or folder name'}, 400
 
-    folder = os.path.join('files/web/output/' + session_id + "/" + folder_name)
+    folder = os.path.join("files", "web", "output", session_id, folder_name)
 
     zip_buffer = io.BytesIO()
 
@@ -321,7 +321,7 @@ def download_all():
     if not session_id:
         return {'error': 'Missing session ID'}, 400
 
-    folder = os.path.join('files/web/output/' + session_id)
+    folder = os.path.join("files", "web", "output", session_id)
 
     zip_buffer = io.BytesIO()
 
@@ -358,8 +358,8 @@ def remove_session():
     if not session_id:
         return {'error': 'Missing session ID'}, 400
 
-    upload_dir = os.path.join('files/web/uploads/' + session_id)
-    output_dir = os.path.join('files/web/output/' + session_id)
+    upload_dir = os.path.join("files", "web", "uploads", session_id)
+    output_dir = os.path.join("files", "web", "output", session_id)
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     if os.path.exists(output_dir):
