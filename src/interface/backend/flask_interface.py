@@ -2,9 +2,12 @@ import io
 import os
 import shutil
 import zipfile
+import uuid
 from threading import Lock
+from functools import wraps
 
-from flask import Flask, request, render_template, send_file, jsonify
+from flask import Flask, request, render_template, send_file, jsonify, make_response
+from flask_socketio import SocketIO, emit, join_room
 
 from src.decryption.decryption import decrypt_directory
 from src.encryption.encryption import encrypt_directory
@@ -19,175 +22,251 @@ WEB_DIR = os.path.join(BASE_DIR, 'src', 'interface', 'web')
 
 app = Flask(__name__, template_folder=WEB_DIR, static_folder=WEB_DIR)
 
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+SESSION_COOKIE_NAME = "sessionID"
+
+
+def get_or_create_session_id_from_request(req):
+    sid = req.cookies.get(SESSION_COOKIE_NAME)
+    if sid:
+        return sid
+    return uuid.uuid4().hex
+
+
+def require_session_cookie(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        session_id = request.cookies.get(SESSION_COOKIE_NAME)
+        if not session_id:
+            return {'error': 'Missing session cookie'}, 400
+        return f(session_id=session_id, *args, **kwargs)
+    return wrapper
+
+
+def safe_add_active(session_id):
+    with session_lock:
+        if session_id in active_sessions:
+            return False
+        active_sessions.add(session_id)
+        return True
+
+
+def safe_remove_active(session_id):
+    with session_lock:
+        if session_id in active_sessions:
+            active_sessions.remove(session_id)
+
+
+def emit_progress(session_id, event_name, payload):
+    socketio.emit(event_name, payload)
+
+
+@socketio.on('connect')
+def ws_connect():
+    emit('connected', {'message': 'socket connected'})
+
+
+@socketio.on('join')
+def ws_join(data):
+    session_id = data.get('sessionID') or request.cookies.get(SESSION_COOKIE_NAME)
+    if not session_id:
+        emit('error', {'message': 'Missing sessionID for join'})
+        return
+    join_room(session_id)
+    emit('joined', {'message': f'Joined room {session_id}'})
+
+
+@socketio.on('leave')
+def ws_leave(data):
+    session_id = data.get('sessionID') or request.cookies.get(SESSION_COOKIE_NAME)
+    if session_id:
+        from flask_socketio import leave_room
+        leave_room(session_id)
+        emit('left', {'message': f'Left room {session_id}'})
+
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    session_id = get_or_create_session_id_from_request(request)
+    resp = make_response(render_template('index.html'))
+    if not request.cookies.get(SESSION_COOKIE_NAME):
+        resp.set_cookie(SESSION_COOKIE_NAME, session_id, httponly=False, samesite='Lax')
+    return resp
 
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    session_id = request.form.get('sessionID')
+    session_id = request.cookies.get(SESSION_COOKIE_NAME)
+    if not session_id:
+        return {'error': 'Missing session cookie'}, 400
 
     upload_dir = create_upload_directory(session_id)
     uploaded_files = request.files.getlist('files')
 
-    if not session_id or not uploaded_files:
-        return {'error': 'Missing session ID or uploaded files'}, 400
+    if not uploaded_files:
+        return {'error': 'Missing uploaded files'}, 400
 
-    with session_lock:
-        if session_id in active_sessions:
-            return {'error': 'Session is busy with another operation'}, 400
-        active_sessions.add(session_id)
+    if not safe_add_active(session_id):
+        return {'error': 'Session is busy with another operation'}, 400
 
-    if not uploaded_files or all(f.filename == '' for f in uploaded_files):
-        return {'error': 'No files selected'}, 400
+    try:
+        if not uploaded_files or all(f.filename == '' for f in uploaded_files):
+            return {'error': 'No files selected'}, 400
 
-    saved_files = []
+        saved_files = []
 
-    for uploaded_file in uploaded_files:
-        if uploaded_file.filename != '':
-            try:
-                file_path = save_file_with_structure(uploaded_file, upload_dir)
-                saved_files.append({
-                    'original_name': uploaded_file.filename,
-                    'saved_path': file_path
-                })
-            except Exception as e:
-                return {'error': f'Error saving file {uploaded_file.filename}: {str(e)}'}, 500
+        for uploaded_file in uploaded_files:
+            if uploaded_file.filename != '':
+                try:
+                    file_path = save_file_with_structure(uploaded_file, upload_dir)
+                    saved_files.append({
+                        'original_name': uploaded_file.filename,
+                        'saved_path': file_path
+                    })
+                except Exception as e:
+                    return {'error': f'Error saving file {uploaded_file.filename}: {str(e)}'}, 500
 
-    total_saved_files = len(saved_files)
+        total_saved_files = len(saved_files)
 
-    with session_lock:
-        if session_id in active_sessions:
-            active_sessions.remove(session_id)
-    if total_saved_files == 0:
-        return {'error': 'No files saved'}, 500
-    elif total_saved_files == 1:
-        return {'message': f"{total_saved_files} file uploaded successfully!"}
-    else:
-        return {'message': f"{total_saved_files} files uploaded successfully!"}
+        if total_saved_files == 0:
+            return {'error': 'No files saved'}, 500
+        elif total_saved_files == 1:
+            return {'message': f"{total_saved_files} file uploaded successfully!"}
+        else:
+            return {'message': f"{total_saved_files} files uploaded successfully!"}
+    finally:
+        safe_remove_active(session_id)
+
 
 @app.route('/remove-folder', methods=['POST'])
-def remove_folder():
+@require_session_cookie
+def remove_folder(session_id):
     folder_name = request.form.get('folderName')
-    session_id = request.form.get('sessionID')
-
-    if not folder_name or session_id is None:
-        return {'error': 'Missing folder name or session ID'}, 400
-
-    with session_lock:
-        if session_id in active_sessions:
-            return {'error': 'Session is busy with another operation'}, 400
-        active_sessions.add(session_id)
+    if not folder_name:
+        return {'error': 'Missing folder name'}, 400
 
     if '..' in folder_name:
         return {'error': 'Invalid folder name'}, 400
+
+    if not safe_add_active(session_id):
+        return {'error': 'Session is busy with another operation'}, 400
 
     try:
         shutil.rmtree(os.path.join("files", "web", "uploads", session_id, folder_name))
     except Exception as e:
         return {'error': f'Error deleting folder {folder_name}: {str(e)}'}, 500
     finally:
-        with session_lock:
-            if session_id in active_sessions:
-                active_sessions.remove(session_id)
+        safe_remove_active(session_id)
 
     return {'message': 'Folder deleted successfully!'}
 
+
 @app.route('/remove-file', methods=['POST'])
-def remove_file():
+@require_session_cookie
+def remove_file(session_id):
     filepath = request.form.get('filePath')
     filename = request.form.get('fileName')
-    session_id = request.form.get('sessionID')
 
-    if not filepath or not filename or session_id is None:
-        return {'error': 'Missing file path, name or session ID'}, 400
-
-    with session_lock:
-        if session_id in active_sessions:
-            return {'error': 'Session is busy with another operation'}, 400
-        active_sessions.add(session_id)
+    if not filepath or not filename:
+        return {'error': 'Missing file path or name'}, 400
 
     if '..' in filepath or '..' in filename:
         return {'error': 'Invalid file path'}, 400
 
-    file = os.path.join(filepath, filename)
+    if not safe_add_active(session_id):
+        return {'error': 'Session is busy with another operation'}, 400
 
     try:
+        file = os.path.join(filepath, filename)
         delete_file(os.path.join("files", "web", "uploads", session_id, file))
     except Exception as e:
         return {'error': f'Error deleting file {filename}: {str(e)}'}, 500
     finally:
-        with session_lock:
-            if session_id in active_sessions:
-                active_sessions.remove(session_id)
+        safe_remove_active(session_id)
 
     return {'message': 'File deleted successfully!'}
 
 
 @app.route('/encrypt-files', methods=['POST'])
-def encrypt_files():
+@require_session_cookie
+def encrypt_files(session_id):
     password = request.form.get('password')
-    session_id = request.form.get('sessionID')
     encrypt_names = request.form.get('encryptNames')
 
-    if not session_id or not password or not encrypt_names:
-        return {'error': 'Missing session ID, encrypt names or password'}, 400
-
-    with session_lock:
-        if session_id in active_sessions:
-            return {'error': 'Session is busy with another operation'}, 400
-        active_sessions.add(session_id)
+    if not password or encrypt_names is None:
+        return {'error': 'Missing encrypt names or password'}, 400
 
     if encrypt_names == "true":
-        encrypt_names = True
+        encrypt_names_bool = True
     elif encrypt_names == "false":
-        encrypt_names = False
+        encrypt_names_bool = False
     else:
         return {'error': 'Invalid encryptNames state'}, 400
+
+    if not safe_add_active(session_id):
+        return {'error': 'Session is busy with another operation'}, 400
 
     clear_output_directory(session_id)
 
     try:
-        encrypted_files = encrypt_directory(password, 1, encrypt_names, session_id)
+        emit_progress(session_id, 'operation_started', {"operation": "encrypt"})
+
+        encrypted_files, total_files = encrypt_directory(
+            password,
+            1,
+            encrypt_names_bool,
+            sessionID=session_id,
+            progress_callback=lambda pct, info, cur, tot: emit_progress(
+                session_id, 'encrypt_progress', {"percent": pct, "info": info, "current": cur, "total": tot}
+            )
+        )
     except Exception as e:
-        with session_lock:
-            active_sessions.remove(session_id)
+        emit_progress(session_id, 'operation_error', {"error": f"{str(e)}"})
+        safe_remove_active(session_id)
         return {'error': f'Error encrypting files: {str(e)}'}, 500
     finally:
-        with session_lock:
-            if session_id in active_sessions:
-                active_sessions.remove(session_id)
+        safe_remove_active(session_id)
 
     if encrypted_files is None or encrypted_files == 0:
+        emit_progress(session_id, 'operation_error', {"error": "Unknown"})
         return {'error': 'Unknown error occurred!'}, 400
     elif encrypted_files == 1:
+        emit_progress(session_id, 'operation_finished', {'operation': 'encrypt', "processed": encrypted_files, "total": total_files})
         return {'message': '1 File encrypted successfully!'}
     else:
+        emit_progress(session_id, 'operation_finished', {'operation': 'encrypt', "processed": encrypted_files, "total": total_files})
         return {'message': f'{encrypted_files} files encrypted successfully!'}
 
 
 @app.route('/decrypt-files', methods=['POST'])
-def decrypt_files():
+@require_session_cookie
+def decrypt_files(session_id):
     password = request.form.get('password')
-    session_id = request.form.get('sessionID')
 
-    if not session_id or not password:
-        return {'error': 'Missing session ID or password'}, 400
+    if not password:
+        return {'error': 'Missing password'}, 400
 
-    with session_lock:
-        if session_id in active_sessions:
-            return {'error': 'Session is busy with another operation'}, 400
-        active_sessions.add(session_id)
+    if not safe_add_active(session_id):
+        return {'error': 'Session is busy with another operation'}, 400
 
     clear_output_directory(session_id)
 
+    total_files = 0
+    decrypted_files = 0
     try:
-        result = decrypt_directory(password, 1, session_id)
+        emit_progress(session_id, 'operation_started', {'operation': 'decrypt'})
+
+        result = decrypt_directory(password, 1, session_id,
+                                   progress_callback=lambda pct, info, cur, tot: emit_progress(
+                                       session_id, 'decrypt_progress',
+                                       {"percent": pct, "info": info, "current": cur, "total": tot}
+                                   ))
 
         if result is None:
+            emit_progress(session_id, 'operation_error', {"error": "No files found to decrypt!"})
             clear_output_directory(session_id)
-            return {'error': 'No files found to decrypt'}, 400
+            return {'error': 'No files found to decrypt!'}, 400
 
         total_files, total_encrypted_files, decrypted_files, password_errors = result
 
@@ -195,10 +274,13 @@ def decrypt_files():
             clear_output_directory(session_id)
 
             if total_encrypted_files == 0 or total_encrypted_files != total_files:
+                emit_progress(session_id, 'operation_error', {"error": "No encrypted files found!"})
                 return {'error': 'No encrypted files found'}, 400
             if password_errors == total_encrypted_files:
+                emit_progress(session_id, 'operation_error', {"error": "No files with that password could be found!"})
                 return {'error': 'No files with that password could be found'}, 400
-            return {'error': 'No files could be decrypted'}, 400
+            emit_progress(session_id, 'operation_error', {"error": "No files could be decrypted!"})
+            return {'error': 'No files could be decrypted!'}, 400
 
         response = {
             'message': f'{decrypted_files} file(s) decrypted successfully!'
@@ -217,22 +299,16 @@ def decrypt_files():
         return response, 200
     except Exception as e:
         clear_output_directory(session_id)
-        with session_lock:
-            active_sessions.remove(session_id)
+        emit_progress(session_id, 'operation_error', {"error": f"{str(e)}"})
         return {'error': f'Error decrypting file: {str(e)}'}, 500
     finally:
-        with session_lock:
-            if session_id in active_sessions:
-                active_sessions.remove(session_id)
+        safe_remove_active(session_id)
+        emit_progress(session_id, 'operation_finished', {'operation': 'decrypt', "processed": decrypted_files, "total": total_files})
 
 
 @app.route("/files", methods=['POST'])
-def files():
-    session_id = request.form.get('sessionID')
-
-    if not session_id:
-        return {'error': 'Missing session ID'}, 400
-
+@require_session_cookie
+def files(session_id):
     output_dir = os.path.join("files", "web", "output", session_id)
     upload_dir = os.path.join("files", "web", "uploads", session_id)
     if not upload_dir or not os.path.exists(output_dir):
@@ -241,28 +317,24 @@ def files():
     file_list = []
     for root, dirs, output_files in os.walk(output_dir):
         for f in output_files:
-            rel_path = os.path.relpath(os.path.join(root, f, output_dir))
+            rel_path = os.path.relpath(os.path.join(root, f), output_dir)
             file_list.append(rel_path)
 
     return jsonify({"files": file_list})
 
 
 @app.route("/download-file", methods=['POST'])
-def download_file():
-    session_id = request.form.get('sessionID')
+@require_session_cookie
+def download_file(session_id):
     file_path = request.form.get('filePath')
 
-    if not session_id or not file_path:
-        return {'error': 'Missing session ID or file path'}, 400
+    if not file_path:
+        return {'error': 'Missing file path'}, 400
 
     if '..' in file_path:
         return {'error': 'Invalid file path'}, 400
 
-    output_dir = os.path.join(BASE_DIR, 'files', 'web', 'output', session_id)
-    full_file_path = os.path.join(output_dir, file_path)
-
-    if not full_file_path.startswith(output_dir):
-        return {'error': 'Invalid file path'}, 500
+    full_file_path = str(os.path.join(BASE_DIR, 'files', 'web', 'output', session_id, file_path))
 
     try:
         if not os.path.exists(full_file_path):
@@ -279,18 +351,16 @@ def download_file():
 
 
 @app.route("/download-folder", methods=['POST'])
-def download_folder():
+@require_session_cookie
+def download_folder(session_id):
     folder_name = request.form.get('folderName')
-    session_id = request.form.get('sessionID')
+    if not folder_name:
+        return {'error': 'Missing folder name'}, 400
 
     if '..' in folder_name:
         return {'error': 'Invalid folder name'}, 400
 
-    if not session_id or not folder_name:
-        return {'error': 'Missing session ID or folder name'}, 400
-
     folder = os.path.join("files", "web", "output", session_id, folder_name)
-
     zip_buffer = io.BytesIO()
 
     if not os.path.exists(folder):
@@ -307,7 +377,7 @@ def download_folder():
         return send_file(
             zip_buffer,
             as_attachment=True,
-            download_name=f"{os.listdir(folder)}.zip",
+            download_name=f"{folder_name}.zip",
             mimetype="application/zip"
         )
     except Exception as e:
@@ -315,14 +385,9 @@ def download_folder():
 
 
 @app.route("/download-all", methods=['POST'])
-def download_all():
-    session_id = request.form.get('sessionID')
-
-    if not session_id:
-        return {'error': 'Missing session ID'}, 400
-
+@require_session_cookie
+def download_all(session_id):
     folder = os.path.join("files", "web", "output", session_id)
-
     zip_buffer = io.BytesIO()
 
     if not os.path.exists(folder):
@@ -339,7 +404,7 @@ def download_all():
         return send_file(
             zip_buffer,
             as_attachment=True,
-            download_name=f"{os.listdir(folder)}.zip",
+            download_name=f"{session_id}.zip",
             mimetype="application/zip"
         )
     except Exception as e:
@@ -347,29 +412,27 @@ def download_all():
 
 
 @app.route("/remove-session", methods=['POST'])
-def remove_session():
-    session_id = request.form.get('sessionID')
+@require_session_cookie
+def remove_session(session_id):
+    if not safe_add_active(session_id):
+        return {'error': 'Session is busy with another operation'}, 400
 
-    with session_lock:
-        if session_id in active_sessions:
-            return {'error': 'Session is busy with another operation'}, 400
-        active_sessions.add(session_id)
-
-    if not session_id:
-        return {'error': 'Missing session ID'}, 400
-
-    upload_dir = os.path.join("files", "web", "uploads", session_id)
-    output_dir = os.path.join("files", "web", "output", session_id)
-    if os.path.exists(upload_dir):
-        shutil.rmtree(upload_dir)
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    delete_old_upload_dirs()
-    with session_lock:
-        if session_id in active_sessions:
-            active_sessions.remove(session_id)
-    return jsonify({"message": "Session removed successfully!"})
+    try:
+        upload_dir = os.path.join("files", "web", "uploads", session_id)
+        output_dir = os.path.join("files", "web", "output", session_id)
+        if os.path.exists(upload_dir):
+            shutil.rmtree(upload_dir)
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        delete_old_upload_dirs()
+        return jsonify({"message": "Session removed successfully!"})
+    finally:
+        safe_remove_active(session_id)
 
 
 def run_flask():
-    app.run(debug=True, use_reloader=False)
+    socketio.run(app, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)
+
+
+if __name__ == '__main__':
+    run_flask()
