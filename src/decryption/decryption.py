@@ -62,7 +62,7 @@ def decrypt_file(password: str, encrypted_filename: str):
     print(f"File decrypted and saved to '{out_path}'.\n")
 
 
-def decrypt_directory(password: str, mode: int, sessionID: str = None):
+def decrypt_directory(password: str, mode: int, sessionID: str = None, progress_callback= None):
     if mode == 0:
         if not os.path.exists("files/encrypted/"):
             print("'files/encrypted/' not found.\n")
@@ -79,6 +79,14 @@ def decrypt_directory(password: str, mode: int, sessionID: str = None):
         root_out = os.path.join("files", "web", "output", sessionID)
     else:
         return None
+
+    total_files_socket = sum(
+        len([f for f in files if os.path.isfile(os.path.join(root, f))])
+        for root, dirs, files in os.walk(root_in)
+    )
+    if total_files_socket == 0:
+        print("No files found to encrypt.\n")
+        return 0
 
     total_files = 0
     total_encrypted_files = 0
@@ -140,6 +148,10 @@ def decrypt_directory(password: str, mode: int, sessionID: str = None):
                         f.write(file_data)
 
                     decrypted_files += 1
+
+                    if progress_callback:
+                        percent = int((decrypted_files / total_files) * 100)
+                        progress_callback(percent, f"Encrypted {item}", decrypted_files, total_files)
 
                 except Exception as e:
                     if mode == 0:
