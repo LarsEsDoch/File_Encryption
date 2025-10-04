@@ -103,6 +103,17 @@ export async function handleFiles(files, mode) {
             uploadFormData.append('files', file, filePath);
         });
 
+        const progressContainer = document.getElementById("progress-container");
+        const progressBar = document.getElementById("progress-bar");
+        const progressInfo = document.getElementById("progress-info");
+        const progressInfoFiles = document.getElementById("progress-info-files");
+
+        progressContainer.classList.remove("hidden");
+        progressInfo.classList.remove("hidden");
+        progressInfoFiles.classList.remove("hidden");
+        progressBar.style.width = "0%";
+        progressInfo.textContent = "Starting upload...";
+
         const result = await api.uploadFiles(uploadFormData);
         if (result.error) {
             ui.showNotification(result.error, 'error');

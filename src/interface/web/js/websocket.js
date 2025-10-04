@@ -1,3 +1,5 @@
+import * as ui from "./ui.js";
+
 export function socket_io() {
     const socket = io({transports: ['websocket']});
 
@@ -18,7 +20,6 @@ export function socket_io() {
     });
 
     socket.on('operation_started', (d) => {
-        console.log('operation started', d);
         progressContainer.classList.remove("hidden");
         progressInfo.classList.remove("hidden");
         progressInfoFiles.classList.remove("hidden");
@@ -51,7 +52,9 @@ export function socket_io() {
     });
 
     socket.on('operation_finished', (d) => {
-        console.log('operation finished', d);
+        if (d.operation === "download") {
+            ui.showNotification("Download starting soon!", "info")
+        }
         progressBar.style.width = "100%";
         progressInfoFiles.textContent = "Finished!";
         progressInfo.textContent = `100% ${d.processed}/${d.total}`
