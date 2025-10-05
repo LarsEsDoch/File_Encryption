@@ -330,9 +330,28 @@ def decrypt_files(session_id):
                 response['warning_mismatch'] = f'{mismatch_count} unencrypted file(s)'
 
         return response, 200
+    except PermissionError:
+        clear_output_directory(session_id)
+        emit_progress(session_id, 'operation_error', {"error": "Permission denied accessing files"})
+        return {'error': 'Permission denied accessing files'}, 500
+    except OSError as e:
+        clear_output_directory(session_id)
+        if e.errno == 28:
+            emit_progress(session_id, 'operation_error', {"error": "Insufficient disk space"})
+            return {'error': 'Insufficient disk space'}, 507
+        emit_progress(session_id, 'operation_error', {"error": f"File system error: {str(e)}"})
+        return {'error': f'File system error: {str(e)}'}, 500
+    except MemoryError:
+        clear_output_directory(session_id)
+        emit_progress(session_id, 'operation_error', {"error": "Insufficient memory for decryption"})
+        return {'error': 'Insufficient memory for decryption'}, 507
+    except ValueError as e:
+        clear_output_directory(session_id)
+        emit_progress(session_id, 'operation_error', {"error": f"Invalid decryption data: {str(e)}"})
+        return {'error': f'Invalid decryption data: {str(e)}'}, 400
     except Exception as e:
         clear_output_directory(session_id)
-        emit_progress(session_id, 'operation_error', {"error": f"{str(e)}"})
+        emit_progress(session_id, 'operation_error', {"error": f"Decryption failed: {str(e)}"})
         return {'error': f'Error decrypting file: {str(e)}'}, 500
     finally:
         safe_remove_active(session_id)
