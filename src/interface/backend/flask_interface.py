@@ -240,16 +240,30 @@ def encrypt_files(session_id):
                 session_id, 'encrypt_progress', {"percent": pct, "info": info, "current": cur, "total": tot}
             )
         )
+    except PermissionError as e:
+        emit_progress(session_id, 'operation_error', {"error": "Permission denied accessing files"})
+        return {'error': 'Permission denied accessing files'}, 500
+    except OSError as e:
+        if e.errno == 28:
+            emit_progress(session_id, 'operation_error', {"error": "Insufficient disk space"})
+            return {'error': 'Insufficient disk space'}, 507
+        emit_progress(session_id, 'operation_error', {"error": f"File system error: {str(e)}"})
+        return {'error': f'File system error: {str(e)}'}, 500
+    except MemoryError:
+        emit_progress(session_id, 'operation_error', {"error": "Insufficient memory for encryption"})
+        return {'error': 'Insufficient memory for encryption'}, 507
+    except ValueError as e:
+        emit_progress(session_id, 'operation_error', {"error": f"Invalid encryption parameters: {str(e)}"})
+        return {'error': f'Invalid encryption parameters: {str(e)}'}, 400
     except Exception as e:
-        emit_progress(session_id, 'operation_error', {"error": f"{str(e)}"})
-        safe_remove_active(session_id)
+        emit_progress(session_id, 'operation_error', {"error": f"Encryption failed: {str(e)}"})
         return {'error': f'Error encrypting files: {str(e)}'}, 500
     finally:
         safe_remove_active(session_id)
 
     if encrypted_files is None or encrypted_files == 0:
-        emit_progress(session_id, 'operation_error', {"error": "Unknown"})
-        return {'error': 'Unknown error occurred!'}, 400
+        emit_progress(session_id, 'operation_error', {"error": "No files were encrypted"})
+        return {'error': 'No files found to encrypt'}, 400
     elif encrypted_files == 1:
         emit_progress(session_id, 'operation_finished', {'operation': 'encrypt', "processed": encrypted_files, "total": total_files})
         return {'message': '1 File encrypted successfully!'}
@@ -297,7 +311,7 @@ def decrypt_files(session_id):
                 return {'error': 'No encrypted files found'}, 400
             if password_errors == total_encrypted_files:
                 emit_progress(session_id, 'operation_error', {"error": "No files with that password could be found!"})
-                return {'error': 'No files with that password could be found'}, 400
+                return {'error': 'Incorrect password for all encrypted files'}, 401
             emit_progress(session_id, 'operation_error', {"error": "No files could be decrypted!"})
             return {'error': 'No files could be decrypted!'}, 400
 
