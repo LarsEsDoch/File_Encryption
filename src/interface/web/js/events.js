@@ -3,10 +3,11 @@ import * as state from "./state.js";
 import * as fileHandler from "./fileHandler.js";
 import * as api from "./api.js";
 import * as utils from "./utils.js";
+import {isEncryptMode} from "./state.js";
 
 
 export function registerEventListeners() {
-    const checkbox = document.getElementById("boolean-check");
+    const encryptNamesCheckbox = document.getElementById("encrypt-names-checkbox");
     const encryptTab = document.getElementById('encrypt-tab');
     const decryptTab = document.getElementById('decrypt-tab');
     const actionButton = document.getElementById('action-button');
@@ -192,10 +193,12 @@ export function registerEventListeners() {
         actionButton.classList.add('cursor-not-allowed', 'opacity-50');
 
         const endpoint = state.isEncryptMode ? '/encrypt-files' : '/decrypt-files';
-        const encryptNames = checkbox.checked ? 'true' : 'false'
+        const encryptNames = encryptNamesCheckbox.checked ? 'true' : 'false'
         const formData = new FormData();
         formData.append('password', passwordInput.value);
-        formData.append("encryptNames", encryptNames)
+        if (isEncryptMode) {
+            formData.append("encryptNames", encryptNames)
+        }
 
         try {
             const result = await api.performCryptoOperation(endpoint, formData);

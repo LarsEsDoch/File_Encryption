@@ -214,7 +214,7 @@ def encrypt_files(session_id):
     encrypt_names = request.form.get('encryptNames')
 
     if not password or encrypt_names is None:
-        return {'error': 'Missing encrypt names or password'}, 400
+        return {'error': 'Missing encrypt names boolean or password'}, 400
 
     if encrypt_names == "true":
         encrypt_names_bool = True

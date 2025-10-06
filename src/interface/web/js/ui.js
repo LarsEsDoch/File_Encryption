@@ -12,6 +12,7 @@ const dropPromptText = document.getElementById('drop-prompt-text');
 const textChoose = document.getElementById('text-choose');
 const fileModeBtn = document.getElementById('file-mode-btn');
 const folderModeBtn = document.getElementById('folder-mode-btn');
+const encryptNamesDiv = document.getElementById("encrypt-names-div");
 
 export function showNotification(message, type = 'info') {
     const container = document.getElementById('notification-container');
@@ -247,12 +248,14 @@ export function updateMainUI() {
         actionButton.textContent = 'Encrypt';
         fileInput.removeAttribute('accept');
         fileInputAdd.removeAttribute('accept');
+        encryptNamesDiv.classList.remove('hidden');
     } else {
         decryptTab.classList.replace('tab-inactive', 'tab-active');
         encryptTab.classList.replace('tab-active', 'tab-inactive');
         actionButton.textContent = 'Decrypt';
         fileInput.setAttribute('accept', '.dat');
         fileInputAdd.setAttribute('accept', '.dat');
+        encryptNamesDiv.classList.add("hidden")
     }
     if (state.selectedFiles) {
         fileHandler.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));

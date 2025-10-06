@@ -80,9 +80,9 @@
                     </button>
                 </div>
 
-                <div class="flex items-center mt-4">
-                    <input id="boolean-check" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-700 rounded">
-                    <label for="boolean-check" class="ml-2 block text-sm text-gray-300">Encrypt file names</label>
+                <div id="encrypt-names-div" class="flex items-center mt-4">
+                    <input id="encrypt-names-checkbox" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-700 rounded">
+                    <label for="encrypt-names-checkbox" class="ml-2 block text-sm text-gray-300">Encrypt file names</label>
                 </div>
             </div>
 
@@ -121,8 +121,8 @@
             </div>
 
             <div>
-                <label for="output-text" class="block text-sm font-medium text-gray-300 mb-2">Output</label>
-                <div class="relative">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Output</label>
+                <div id="output" class="relative">
                     <div class="bg-gray-800 border border-gray-700 rounded-lg p-3 text-gray-200" id="output-text">
                         <div class="flex justify-between items-center mb-3">
                             <button id="download-all-btn"
