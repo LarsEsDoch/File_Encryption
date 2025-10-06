@@ -112,14 +112,6 @@
                 Encrypt
             </button>
 
-            <div id="progress-container" class="w-full bg-gray-700 rounded-lg h-4 mt-4 hidden">
-                <div id="progress-bar" class="bg-blue-500 h-4 rounded-lg transition-all duration-300 ease-out" style="width: 0%"></div>
-            </div>
-            <div class="flex flex-col items-center space-y-0.5 mt-1">
-                <p id="progress-info" class="text-sm text-gray-400 text-center hidden"></p>
-                <p id="progress-info-files" class="text-sm text-gray-400 text-center hidden"></p>
-            </div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Output</label>
                 <div id="output" class="relative">
@@ -145,6 +137,16 @@
         </div>
     </div>
 </div>
+
 <div id="notification-container" class="fixed bottom-4 right-4 w-80 z-50 flex flex-col-reverse gap-3"></div>
+
+<div id="progress-container" class="fixed bottom-4 middle w-80 z-50 flex flex-col-reverse gap-3 background-blue">
+    <div id="progress-bar" class="bg-blue-500 h-4 rounded-lg transition-all duration-300 ease-out" style="width: 0%"></div>
+    <div class="flex flex-col items-center space-y-0.5 mt-1">
+        <p id="progress-info" class="text-sm text-gray-400 text-center hidden"></p>
+        <p id="progress-info-files" class="text-sm text-gray-400 text-center hidden"></p>
+    </div>
+</div>
+
 </body>
 </html>
