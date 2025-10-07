@@ -13,6 +13,9 @@ const textChoose = document.getElementById('text-choose');
 const fileModeBtn = document.getElementById('file-mode-btn');
 const folderModeBtn = document.getElementById('folder-mode-btn');
 const encryptNamesDiv = document.getElementById("encrypt-names-div");
+const strength = document.getElementById('strength');
+const verdictEl = document.getElementById('verdict');
+const verdictTimeEl = document.getElementById('verdict-time');
 
 export function showNotification(message, type = 'info') {
     const container = document.getElementById('notification-container');
@@ -256,7 +259,11 @@ export function updateMainUI() {
         fileInput.setAttribute('accept', '.dat');
         fileInputAdd.setAttribute('accept', '.dat');
         encryptNamesDiv.classList.add("hidden")
+        strength.className = "strength-off";
+        verdictEl.classList.add("hidden");
+        verdictTimeEl.classList.add("hidden");
     }
+
     if (state.selectedFiles) {
         fileHandler.resetFileInput().catch(error => ui.showNotification(`Error resetting file input: ${error.message}`, 'error'));
     }
