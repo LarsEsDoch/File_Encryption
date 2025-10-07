@@ -3,11 +3,11 @@ import * as state from "./state.js";
 import * as fileHandler from "./fileHandler.js";
 import * as api from "./api.js";
 import * as utils from "./utils.js";
-import {isEncryptMode} from "./state.js";
 
 
 export function registerEventListeners() {
     const encryptNamesCheckbox = document.getElementById("encrypt-names-checkbox");
+    const encryptNamesDiv = document.getElementById("encrypt-names-div");
     const encryptTab = document.getElementById('encrypt-tab');
     const decryptTab = document.getElementById('decrypt-tab');
     const actionButton = document.getElementById('action-button');
@@ -122,7 +122,12 @@ export function registerEventListeners() {
         fileInputAdd.click();
     });
 
+    encryptNamesDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+    })
+
     passwordInput.addEventListener("input", function() {
+        if (!state.isEncryptMode) return;
         const bar = document.getElementById('strengthBar');
         const strength = document.getElementById('strength');
         const verdictEl = document.getElementById('verdict');
@@ -196,7 +201,7 @@ export function registerEventListeners() {
         const encryptNames = encryptNamesCheckbox.checked ? 'true' : 'false'
         const formData = new FormData();
         formData.append('password', passwordInput.value);
-        if (isEncryptMode) {
+        if (state.isEncryptMode) {
             formData.append("encryptNames", encryptNames)
         }
 
