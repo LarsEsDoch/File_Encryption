@@ -48,8 +48,8 @@ export function registerEventListeners() {
     });
 
     fileDropZone.addEventListener('click', (e) => {
-        if (state.isOperating) return ui.showNotification(`An ${state.isOperating} operation is in progress. Please wait!`, 'warning');
         if (e.target.classList.contains('remove-button') || e.target.closest('#file-input-add')) return;
+        if (state.isOperating) return ui.showNotification(`An ${state.isOperating} operation is in progress. Please wait!`, 'warning');
         fileInput.click();
     });
 
@@ -231,7 +231,7 @@ export function registerEventListeners() {
     document.addEventListener('click', async function(e) {
         if (e.target && e.target.classList.contains('remove-button')) {
             e.stopPropagation();
-            if (state.isOperating) return ui.showNotification('An operation is in progress. Please wait!', 'warning');
+            if (state.isOperating) return ui.showNotification(`An ${state.isOperating} operation is in progress. Please wait!`, 'warning');
 
             const formData = new FormData();
 

@@ -3,7 +3,6 @@ import * as ui from "./ui.js";
 export function socket_io() {
     const socket = io({transports: ['websocket']});
 
-    const progressContainer = document.getElementById("progress-container");
     const progressBar = document.getElementById("progress-bar");
     const progressInfo = document.getElementById("progress-info");
     const progressInfoFiles = document.getElementById("progress-info-files");

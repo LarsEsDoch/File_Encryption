@@ -115,7 +115,7 @@ body {
     height: 12px;
     width: 100%;
     border-radius: 6px;
-    background: #ddd;
+    background: rgb(55, 65, 81);
     overflow: hidden;
     transition: width 1s;
 }
@@ -172,6 +172,13 @@ body {
     height: 0.75rem;
     border-radius: 0.5rem;
     background-color: #3b82f6;
+    transition: width 0.3s ease-out;
+}
+
+#progress-bar-background {
+    height: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: rgb(55, 65, 81);
     transition: width 0.3s ease-out;
 }
 
