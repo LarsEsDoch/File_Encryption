@@ -244,6 +244,16 @@ export function displaySelectedFiles(files) {
     fileNameDisplay.textContent = `${files.length} file${files.length > 1 ? 's' : ''} selected`;
 }
 
+export function showProgressContainer() {
+    const container = document.getElementById('progress-container');
+    container.classList.add('show');
+}
+
+export function hideProgressContainer() {
+    const container = document.getElementById('progress-container');
+    container.classList.remove('show');
+}
+
 export function updateMainUI() {
     if (state.isEncryptMode) {
         encryptTab.classList.replace('tab-inactive', 'tab-active');

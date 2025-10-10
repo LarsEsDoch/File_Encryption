@@ -141,6 +141,60 @@ body {
 .strong { background: green; }
 .extremely-strong {background: #3b82f6}
 
+#progress-container {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(100% + 1rem));
+    width: 20rem;
+    z-index: 50;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    background: rgba(31, 41, 55, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+
+    transition: all 0.4s ease-in-out;
+    opacity: 0;
+}
+
+#progress-container.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+#progress-bar {
+    height: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: #3b82f6;
+    transition: width 0.3s ease-out;
+}
+
+#progress-info,
+#progress-info-files {
+    color: #9ca3af;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+@keyframes blink-green {
+    0%, 100% {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    25%, 75% {
+        background-color: #22c55e;
+    }
+}
+
+#progress-bar.blink-green {
+    animation: blink-green 1s ease-in-out 5;
+}
+
 @keyframes progress-animation {
     from {
         width: 100%;

@@ -20,9 +20,7 @@ export function socket_io() {
     });
 
     socket.on('operation_started', (d) => {
-        progressContainer.classList.remove("hidden");
-        progressInfo.classList.remove("hidden");
-        progressInfoFiles.classList.remove("hidden");
+        ui.showProgressContainer()
         progressBar.style.width = "0%";
         progressInfo.textContent = "Starting...";
     });
@@ -55,17 +53,20 @@ export function socket_io() {
         if (d.operation === "download") {
             ui.showNotification("Download starting soon!", "info")
         }
+        progressBar.classList.add('blink-green');
         progressBar.style.width = "100%";
         progressInfoFiles.textContent = "Finished!";
         progressInfo.textContent = `100% ${d.processed}/${d.total}`
+
         setTimeout(() => {
-            progressContainer.classList.add("hidden");
-            progressInfo.classList.add("hidden");
-            progressInfoFiles.classList.add("hidden");
+            ui.hideProgressContainer()
             progressInfo.textContent = ""
             progressInfoFiles.textContent = ""
             progressBar.style.width = "0%";
-        }, 2000);
+        }, 4000);
+        setTimeout(() => {
+            progressBar.classList.remove('blink-green');
+        }, 5000)
     });
 
     socket.on('operation_error', (d) => {
