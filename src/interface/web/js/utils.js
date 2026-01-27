@@ -239,3 +239,101 @@ export function evaluatePassword(password, opts = {}) {
         raw: res
     };
 }
+
+export function getUniqueFileName(originalName, usedNames) {
+    const dotIndex = originalName.lastIndexOf(".");
+    const name = dotIndex !== -1 ? originalName.slice(0, dotIndex) : originalName;
+    const ext  = dotIndex !== -1 ? originalName.slice(dotIndex) : "";
+
+    let counter = 1;
+    let newName = originalName;
+
+    while (usedNames.has(newName)) {
+        newName = `${name}_(${counter})${ext}`;
+        counter++;
+    }
+
+    usedNames.add(newName);
+    return newName;
+}
+
+function getUniqueFileNameIfNeeded(fileName, usedNames) {
+    if (!usedNames.has(fileName)) {
+        usedNames.add(fileName);
+        return fileName;
+    }
+
+    const dotIndex = fileName.lastIndexOf(".");
+    const base = dotIndex !== -1 ? fileName.slice(0, dotIndex) : fileName;
+    const ext  = dotIndex !== -1 ? fileName.slice(dotIndex) : "";
+
+    let counter = 1;
+    let newName;
+
+    do {
+        newName = `${base}_(${counter})${ext}`;
+        counter++;
+    } while (usedNames.has(newName));
+
+    usedNames.add(newName);
+    return newName;
+}
+
+export function normalizeNewFiles(newFiles, existingFiles) {
+    const usedNames = new Set(
+        Array.from(existingFiles || []).map(f =>
+            f.webkitRelativePath && f.webkitRelativePath !== "."
+                ? f.webkitRelativePath
+                : f.name
+        )
+    );
+
+    return Array.from(newFiles).map(file => {
+        const hasFolder =
+            file.webkitRelativePath &&
+            file.webkitRelativePath !== "" &&
+            file.webkitRelativePath.includes("/");
+
+        if (!hasFolder) {
+            const finalName = getUniqueFileNameIfNeeded(file.name, usedNames);
+
+            if (finalName === file.name) {
+                Object.defineProperty(file, "webkitRelativePath", {
+                    value: ""
+                });
+                return file;
+            }
+
+            const renamed = new File([file], finalName, {
+                type: file.type,
+                lastModified: file.lastModified
+            });
+
+            Object.defineProperty(renamed, "webkitRelativePath", {
+                value: ""
+            });
+
+            return renamed;
+        }
+
+        const parts = file.webkitRelativePath.split("/");
+        const fileName = parts.pop();
+        const folderPath = parts.join("/") + "/";
+
+        const finalFileName = getUniqueFileNameIfNeeded(fileName, usedNames);
+        const finalPath = folderPath + finalFileName;
+
+        if (finalFileName === fileName) return file;
+
+        const renamed = new File([file], finalFileName, {
+            type: file.type,
+            lastModified: file.lastModified
+        });
+
+        Object.defineProperty(renamed, "webkitRelativePath", {
+            value: finalPath
+        });
+
+        return renamed;
+    });
+}

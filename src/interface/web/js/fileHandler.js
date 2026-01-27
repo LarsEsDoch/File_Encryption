@@ -1,7 +1,7 @@
 import * as api from "./api.js";
 import * as state from "./state.js";
 import * as ui from "./ui.js";
-import * as fileHandler from "./fileHandler.js";
+import {getUniqueFileName, normalizeNewFiles} from "./utils.js";
 
 const fileInput = document.getElementById('file-input');
 const uploadPrompt = document.getElementById('upload-prompt');
@@ -76,20 +76,30 @@ export async function startDownload(response, downloadFilename) {
 export async function handleFiles(files, mode) {
     if (files.length === 0) return;
 
-    if (mode !== 'add') {
-        //await api.removeSession();
-    }
-
     await updateAndLoadFiles();
-    state.setSelectedFiles((mode === 'add') ? fileHandler.mergeFileLists(state.selectedFiles, files) : files);
+
+    const filesToAdd =
+        mode === 'add'
+            ? normalizeNewFiles(files, state.selectedFiles)
+            : files;
+
+    state.setSelectedFiles(
+        mode === 'add'
+            ? [...state.selectedFiles, ...filesToAdd]
+            : filesToAdd
+    );
 
     if (!state.isFileMode) {
         const folder = files[0].webkitRelativePath.split('/')[0];
 
-        if (state.folderNames) {
-            state.setFolderNames([...state.folderNames, folder]);
+        if (state.folderNames.includes(folder)) {
+            ui.showNotification(`There is already a folder named ${folder} uploaded. Therefore they will be combined!`);
         } else {
-            state.setFolderNames([folder]);
+            if (state.folderNames) {
+                state.setFolderNames([...state.folderNames, folder]);
+            } else {
+                state.setFolderNames([folder]);
+            }
         }
     }
 
@@ -98,9 +108,19 @@ export async function handleFiles(files, mode) {
     state.setOperating("uploading");
     try {
         const uploadFormData = new FormData();
+        const usedNames = new Set();
+
         Array.from(state.selectedFiles).forEach(file => {
-            const filePath = file.webkitRelativePath || file.name;
-            uploadFormData.append('files', file, filePath);
+            const originalPath = file.webkitRelativePath || file.name;
+
+            const parts = originalPath.split("/");
+            const fileName = parts.pop();
+            const folderPath = parts.length ? parts.join("/") + "/" : "";
+
+            const uniqueName = getUniqueFileName(fileName, usedNames);
+            const finalPath = folderPath + uniqueName;
+            console.log(file, finalPath);
+            uploadFormData.append('files', file, finalPath);
         });
 
         const progressBar = document.getElementById("progress-bar");

@@ -103,7 +103,6 @@ def upload_file():
 
     upload_dir = create_upload_directory(session_id)
     uploaded_files = request.files.getlist('files')
-
     if not uploaded_files:
         return {'error': 'Missing uploaded files'}, 400
 
@@ -186,6 +185,7 @@ def remove_folder(session_id):
 def remove_file(session_id):
     filepath = request.form.get('filePath')
     filename = request.form.get('fileName')
+    print("Path", filepath, "Name ", filename)
 
     if not filepath or not filename:
         return {'error': 'Missing file path or name'}, 400
