@@ -191,7 +191,7 @@ export function registerEventListeners() {
         if (state.isOperating) return ui.showNotification(`An ${state.isOperating} operation is in progress. Please wait!`, 'warning');
         if (!state.selectedFiles) return ui.showNotification('No files selected!', 'info');
         if (!passwordInput.value) return ui.showNotification('Please enter a password first!', 'info');
-        if (utils.evaluatePassword(passwordInput.value).status === 400) utils.evaluatePassword(passwordInput.value).message.suggestions.forEach(message => ui.showNotification(message, 'warning'));
+        if (utils.evaluatePassword(passwordInput.value).status === 400 && state.isEncryptMode) utils.evaluatePassword(passwordInput.value).message.suggestions.forEach(message => ui.showNotification(message, 'warning'));
 
         state.setOperating(state.isEncryptMode ? 'encrypting' : 'decrypting');
         actionButton.disabled = true;
