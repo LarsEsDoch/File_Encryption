@@ -77,7 +77,7 @@ export async function handleFiles(files, mode) {
     if (files.length === 0) return;
 
     if (mode !== 'add') {
-        await api.removeSession();
+        //await api.removeSession();
     }
 
     await updateAndLoadFiles();
