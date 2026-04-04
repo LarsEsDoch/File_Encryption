@@ -14,6 +14,8 @@ from src.encryption.encryption import encrypt_directory
 from src.utils.utils import create_upload_directory, save_file_with_structure, delete_file, delete_old_upload_dirs, \
     clear_output_directory
 
+from werkzeug.utils import secure_filename
+
 active_sessions = set()
 session_lock = Lock()
 
@@ -91,7 +93,7 @@ def index():
     session_id = get_or_create_session_id_from_request(request)
     resp = make_response(render_template('index.html'))
     if not request.cookies.get(SESSION_COOKIE_NAME):
-        resp.set_cookie(SESSION_COOKIE_NAME, session_id, httponly=False, samesite='Lax')
+        resp.set_cookie(SESSION_COOKIE_NAME, session_id, httponly=True, samesite='Lax')
     return resp
 
 
@@ -160,20 +162,22 @@ def upload_file():
 @app.route('/remove-folder', methods=['POST'])
 @require_session_cookie
 def remove_folder(session_id):
-    folder_name = request.form.get('folderName')
-    if not folder_name:
+    foldername = request.form.get('folderName')
+    if not foldername:
         return {'error': 'Missing folder name'}, 400
 
-    if '..' in folder_name:
+    if '..' in foldername:
         return {'error': 'Invalid folder name'}, 400
+
+    foldername = secure_filename(foldername)
 
     if not safe_add_active(session_id):
         return {'error': 'Session is busy with another operation'}, 400
 
     try:
-        shutil.rmtree(os.path.join("files", "web", "uploads", session_id, folder_name))
+        shutil.rmtree(os.path.join("files", "web", "uploads", session_id, foldername))
     except Exception as e:
-        return {'error': f'Error deleting folder {folder_name}: {str(e)}'}, 500
+        return {'error': f'Error deleting folder {foldername}: {str(e)}'}, 500
     finally:
         safe_remove_active(session_id)
 
@@ -185,13 +189,14 @@ def remove_folder(session_id):
 def remove_file(session_id):
     filepath = request.form.get('filePath')
     filename = request.form.get('fileName')
-    print("Path", filepath, "Name ", filename)
 
     if not filepath or not filename:
         return {'error': 'Missing file path or name'}, 400
 
     if '..' in filepath or '..' in filename:
         return {'error': 'Invalid file path'}, 400
+
+    filename = secure_filename(filename)
 
     if not safe_add_active(session_id):
         return {'error': 'Session is busy with another operation'}, 400
@@ -386,6 +391,8 @@ def download_file(session_id):
     if '..' in file_path:
         return {'error': 'Invalid file path'}, 400
 
+    file_path = secure_filename(file_path)
+
     full_file_path = str(os.path.join(BASE_DIR, 'files', 'web', 'output', session_id, file_path))
 
     try:
@@ -411,6 +418,8 @@ def download_folder(session_id):
 
     if '..' in folder_name:
         return {'error': 'Invalid folder name'}, 400
+
+    folder_name = secure_filename(folder_name)
 
     folder = os.path.join("files", "web", "output", session_id, folder_name)
     zip_buffer = io.BytesIO()
